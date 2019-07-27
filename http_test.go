@@ -38,10 +38,31 @@ func (f fixture) act() *httptest.ResponseRecorder {
 	return rr
 }
 
+func notWellFormedYamlConfigurationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", nil)
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  true == true
+
+action
+  uri: 'null://'
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"yaml: line 6: could not find expected ':'","status":"error"}`)
+		},
+	}
+}
+
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []fixtureSupplier{
-			// fixtures...
+			notWellFormedYamlConfigurationFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
