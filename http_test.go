@@ -59,10 +59,32 @@ action
 	}
 }
 
+func incorrectConfigurationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", nil)
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  true == true
+
+action:
+  uri: 'null://'
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"Action.Method: zero value","status":"error"}`)
+		},
+	}
+}
+
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []fixtureSupplier{
 			notWellFormedYamlConfigurationFixture,
+			incorrectConfigurationFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
