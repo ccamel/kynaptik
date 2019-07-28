@@ -102,12 +102,37 @@ action:
 	}
 }
 
+func invalidJSONRequestFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{malformed}"))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  a != "bar2"
+
+action:
+  uri: 'null://'
+  method: GET
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-payload"},"message":"invalid character 'm' looking for beginning of object key string","status":"fail"}`)
+		},
+	}
+}
+
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []fixtureSupplier{
 			notWellFormedYamlConfigurationFixture,
 			incorrectConfigurationFixture,
 			incorrectIncomingRequestFixture,
+			invalidJSONRequestFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
