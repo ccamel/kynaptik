@@ -199,6 +199,30 @@ action:
 	}
 }
 
+func unsatisfiedConditionFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  data.foo != "bar"
+
+action:
+  uri: 'null://'
+  method: GET
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusOK)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-condition"},"message":"unsatisfied condition","status":"success"}`)
+		},
+	}
+}
+
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []fixtureSupplier{
@@ -209,6 +233,7 @@ func TestHttpFunction(t *testing.T) {
 			unparsableConditionFixture,
 			invalidConditionFixture,
 			wrongTypeConditionFixture,
+			unsatisfiedConditionFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
