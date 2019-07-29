@@ -223,6 +223,48 @@ action:
 	}
 }
 
+type ErroredReader struct {
+	count int32
+}
+
+func (r *ErroredReader) Read(p []byte) (n int, err error) {
+	if r.count > 1000 {
+		return 0, io.ErrClosedPipe
+	}
+	r.count = r.count + int32(len(p))
+
+	for i := range p {
+		p[i] = 'a'
+	}
+
+	return len(p), nil
+}
+
+func crappyCallerFixture() fixture {
+	req, err := http.NewRequest("GET", "/", &ErroredReader{0})
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  data.foo != "bar"
+
+action:
+  uri: 'null://'
+  method: GET
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-payload"},"message":"io: read/write on closed pipe","status":"fail"}`)
+		},
+	}
+}
+
+
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []fixtureSupplier{
@@ -234,6 +276,7 @@ func TestHttpFunction(t *testing.T) {
 			invalidConditionFixture,
 			wrongTypeConditionFixture,
 			unsatisfiedConditionFixture,
+			crappyCallerFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
