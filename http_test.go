@@ -362,6 +362,59 @@ action:
 	}
 }
 
+func successfulPostWithHeadersInvocationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: fmt.Sprintf(`
+condition: |
+  data.foo == "bar"
+
+action:
+  uri: 'http://127.0.0.1:%d'
+  method: POST
+  headers:
+    "Content-Type": application/json
+    "X-Appid": |
+      {{if eq .data.foo "bar"}}Rmlyc3Qgb3B0aW9u={{else}}U2Vjb25kIG9wdGlvbg=={{end}}`, port),
+		arrange: func(c C) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					c.So(r.URL.String(), ShouldEqual, "/")
+					c.So(r.Header, ShouldContainKey, "Content-Type")
+					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
+					c.So(r.Header.Get("X-Appid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
+
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					_, _ = io.WriteString(w, "hello world\n")
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusOK)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"do-action"},"message":"HTTP call succeeded","status":"success"}`)
+		},
+	}
+}
+
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []fixtureSupplier{
@@ -376,6 +429,7 @@ func TestHttpFunction(t *testing.T) {
 			crappyCallerFixture,
 			badInvocationFixture,
 			successfulGetInvocationFixture,
+			successfulPostWithHeadersInvocationFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
