@@ -2,11 +2,13 @@ package main
 
 import (
 	"fmt"
+	"github.com/phayes/freeport"
 	"github.com/rs/zerolog"
 	. "github.com/smartystreets/goconvey/convey"
 	"io"
 	"io/ioutil"
 	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -264,6 +266,56 @@ action:
 	}
 }
 
+func badInvocationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: fmt.Sprintf(`
+condition: |
+  data.foo == "bar"
+
+action:
+  uri: 'http://127.0.0.1:%d?param={{ .data.foo }}'
+  method: GET
+`, port),
+		arrange: func(c C) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					c.So(r.URL.String(), ShouldEqual, "/?param=bar")
+
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+
+					w.Header().Set("Content-Type", "application/json")
+					w.WriteHeader(http.StatusUnauthorized)
+					_, _ = fmt.Fprintln(w, `{ "message": "You're not authorized to perform call"}"`)
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadGateway)
+			So(rr.Body.String(), ShouldEqual, fmt.Sprintf(
+				`{"data":{"stage":"do-action"},"message":"endpoint 'http://127.0.0.1:%d?param=bar' returned status 401 (401 Unauthorized)","status":"error"}`, port))
+		},
+	}
+}
 
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
@@ -277,6 +329,7 @@ func TestHttpFunction(t *testing.T) {
 			wrongTypeConditionFixture,
 			unsatisfiedConditionFixture,
 			crappyCallerFixture,
+			badInvocationFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
