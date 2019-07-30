@@ -1,0 +1,13 @@
+language: go
+
+go_import_path: github.com/ccamel/knocker
+
+go:
+  - 1.12.4
+
+jobs:
+  include:
+    - stage: build
+      script:
+        - make lint
+        - make build
