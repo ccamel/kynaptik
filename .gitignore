@@ -18,8 +18,4 @@ static/*.go
 
 vendor/
 
-go-graphql-subscription-example
-
 coverage.txt
-
-reaktion
