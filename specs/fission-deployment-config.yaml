@@ -1,0 +1,5 @@
+# Do not edit the UID below: that will break 'fission spec apply'
+apiVersion: fv1.io/v1
+kind: DeploymentConfig
+name: kynaptik
+uid: 2bca07d1-c2c3-483f-9e6f-cf298ada2339

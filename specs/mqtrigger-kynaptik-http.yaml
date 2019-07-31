@@ -1,0 +1,17 @@
+apiVersion: fv1.io/v1
+kind: MessageQueueTrigger
+metadata:
+  creationTimestamp: null
+  name: kynaptik-http
+  namespace: default
+spec:
+  contentType: application/json
+  errorTopic: error
+  functionref:
+    functionweights: null
+    name: kynaptik-http
+    type: name
+  maxRetries: 0
+  messageQueueType: kafka
+  respTopic: output
+  topic: input
