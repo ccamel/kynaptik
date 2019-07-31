@@ -22,5 +22,11 @@ lint: install-tools
 goconvey: build
 	goconvey -excludedDirs config
 
+dist: build vendor
+	zip -r dist/kynaptik-http.zip http.go vendor/
+
+vendor:
+	go mod vendor
+
 build/%.so:
 	go build -buildmode=plugin -o $@ $<
