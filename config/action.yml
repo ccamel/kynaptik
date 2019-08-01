@@ -1,0 +1,11 @@
+condition: |
+  foo == "test"
+
+action:
+  uri: 'https://foo-bar'
+  method: GET
+  headers:
+    Content-Type: application/json
+
+  body: |
+    test
