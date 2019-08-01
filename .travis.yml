@@ -1,9 +1,11 @@
+sudo: false
 language: go
-
-go_import_path: github.com/ccamel/knocker
-
+go_import_path: github.com/ccamel/kynaptik
 go:
   - 1.12.4
+
+before_install:
+  - go get github.com/mattn/goveralls
 
 jobs:
   include:
@@ -11,3 +13,4 @@ jobs:
       script:
         - make lint
         - make build
+        - env GO111MODULE=on goveralls -service=travis-ci

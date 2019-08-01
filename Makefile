@@ -14,7 +14,7 @@ install-tools:
 build: build/http.so
 
 test: build
-	go test ./...
+	go test -v -covermode=count -coverprofile c.out .
 
 lint: install-tools
 	golangci-lint run
