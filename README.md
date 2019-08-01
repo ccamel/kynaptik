@@ -7,7 +7,7 @@
 [![maintainability](https://api.codeclimate.com/v1/badges/bb38e3df1b0591b4d1ef/maintainability)](https://codeclimate.com/github/ccamel/kynaptik/maintainability)
 [![stackshare](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/ccamel/kynaptik)
 
-> Serverless Function on Kubernetes (through Fission) providing a generic and configurable mean to trigger actions from incoming events.
+> Serverless Function on [Kubernetes](https://kubernetes.io/) (through [Fission](https://fission.io/)) providing a generic and configurable mean to trigger _actions_ from incoming _events_.
 
 ## Purpose
 
