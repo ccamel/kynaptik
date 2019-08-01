@@ -79,7 +79,7 @@ func main() {
 // EntryPoint is the entry point for this Fission function
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	invokeλ(w, r, func() io.ReadCloser {
-		f, _ := os.Open("config/action.yml")
+		f, _ := os.Open("/configs/default/function-spec.yml")
 		return f
 	})
 }
