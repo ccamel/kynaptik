@@ -2,6 +2,7 @@ Kynaptiꓘ
 ========
 
 ![under-construction](https://img.shields.io/badge/%F0%9F%9A%A7-under%20construction-important)
+[![build-status](https://travis-ci.org/ccamel/kynaptik.svg?branch=master)](https://travis-ci.org/ccamel/kynaptik)
 [![maintainability](https://api.codeclimate.com/v1/badges/bb38e3df1b0591b4d1ef/maintainability)](https://codeclimate.com/github/ccamel/kynaptik/maintainability)
 
 > Serverless Function on Kubernetes (through Fission) providing a generic and configurable mean to trigger actions from incoming events.
