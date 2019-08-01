@@ -1,4 +1,4 @@
-module github.com/ccamel/reaktion
+module github.com/ccamel/kynaptik
 
 go 1.12
 
