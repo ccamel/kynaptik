@@ -20,7 +20,7 @@ lint: install-tools
 	golangci-lint run
 
 goconvey: build
-	goconvey -excludedDirs config
+	goconvey -excludedDirs build,config,doc,dist,specs,vendor
 
 dist: build vendor
 	zip -r dist/kynaptik-http.zip http.go vendor/
