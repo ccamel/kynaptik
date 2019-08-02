@@ -450,6 +450,26 @@ func TestHttpFunction(t *testing.T) {
 	})
 }
 
+func TestEntryPoints(t *testing.T) {
+	Convey("When calling Http 'main' function", t, func(c C) {
+		Convey("Then it shall panic (this is normal)", func() {
+			So(main, ShouldPanic)
+		})
+	})
+	Convey("When calling Http 'EntryPoint' function", t, func(c C) {
+		w := httptest.NewRecorder()
+		r, _ :=  http.NewRequest("GET", "/", strings.NewReader("hello, world!"))
+
+		EntryPoint(w, r)
+
+		Convey("Then post-conditions shall be satisfied", func() {
+			So(w.Code, ShouldEqual, 503)
+			So(w.Header().Get("Content-Type"), ShouldEqual, "application/json")
+			So(w.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"yaml: input error: invalid argument","status":"error"}`)
+		})
+	})
+}
+
 func init() {
 	rand.Seed(time.Now().UnixNano())
 
