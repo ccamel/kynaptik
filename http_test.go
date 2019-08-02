@@ -290,6 +290,30 @@ action:
 	}
 }
 
+func badActionURITemplateFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  data.foo == "bar"
+
+action:
+  uri: 'http://127.0.0.1?{{ unknownfunc }}'
+  method: POST
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: url:1: function \"unknownfunc\" not defined","status":"fail"}`)
+		},
+	}
+}
+
 func badInvocationFixture() fixture {
 	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
 	So(err, ShouldBeNil)
@@ -451,6 +475,7 @@ func TestHttpFunction(t *testing.T) {
 			invalidConditionFixture,
 			wrongTypeConditionFixture,
 			unsatisfiedConditionFixture,
+			badActionURITemplateFixture,
 			crappyCallerFixture,
 			badInvocationFixture,
 			successfulGetInvocationFixture,
