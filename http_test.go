@@ -82,9 +82,33 @@ action:
 	}
 }
 
-func incorrectIncomingRequestFixture() fixture {
+func unsupportedMediaTypeIncomingRequestFixture() fixture {
 	req, err := http.NewRequest("GET", "/", nil)
 	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  true == true
+
+action:
+  uri: 'null://'
+  method: GET
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusUnsupportedMediaType)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"check-content-type"},"message":"unsupported media type. Expected: application/json","status":"fail"}`)
+		},
+	}
+}
+
+func unparsableMediaTypeIncomingRequestFixture() fixture {
+	req, err := http.NewRequest("GET", "/", nil)
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "text/")
 
 	return fixture{
 		fnReq: req,
@@ -266,6 +290,80 @@ action:
 	}
 }
 
+func badActionURITemplateFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  data.foo == "bar"
+
+action:
+  uri: 'http://127.0.0.1?{{ unknownfunc }}'
+  method: POST
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: url:1: function \"unknownfunc\" not defined","status":"fail"}`)
+		},
+	}
+}
+
+func badActionMethodTemplateFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  data.foo == "bar"
+
+action:
+  uri: 'http://127.0.0.1'
+  method: '{{ unknownfunc }}'
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: method:1: function \"unknownfunc\" not defined","status":"fail"}`)
+		},
+	}
+}
+
+func badActionHeaderTemplateFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  data.foo == "bar"
+
+action:
+  uri: 'http://127.0.0.1'
+  method: GET
+  headers:
+    X-AppId: '{{ unknownfunc }}'
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: header:1: function \"unknownfunc\" not defined","status":"fail"}`)
+		},
+	}
+}
+
 func badInvocationFixture() fixture {
 	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
 	So(err, ShouldBeNil)
@@ -420,12 +518,16 @@ func TestHttpFunction(t *testing.T) {
 		fixtures := []fixtureSupplier{
 			notWellFormedYamlConfigurationFixture,
 			incorrectConfigurationFixture,
-			incorrectIncomingRequestFixture,
+			unsupportedMediaTypeIncomingRequestFixture,
+			unparsableMediaTypeIncomingRequestFixture,
 			invalidJSONRequestFixture,
 			unparsableConditionFixture,
 			invalidConditionFixture,
 			wrongTypeConditionFixture,
 			unsatisfiedConditionFixture,
+			badActionURITemplateFixture,
+			badActionMethodTemplateFixture,
+			badActionHeaderTemplateFixture,
 			crappyCallerFixture,
 			badInvocationFixture,
 			successfulGetInvocationFixture,
