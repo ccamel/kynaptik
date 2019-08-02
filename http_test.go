@@ -364,6 +364,32 @@ action:
 	}
 }
 
+func badActionBodyTemplateFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  data.foo == "bar"
+
+action:
+  uri: 'http://127.0.0.1'
+  method: POST
+  body: |
+    {{ unknownfunc }}
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: body:1: function \"unknownfunc\" not defined","status":"fail"}`)
+		},
+	}
+}
+
 func badInvocationFixture() fixture {
 	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
 	So(err, ShouldBeNil)
@@ -461,7 +487,7 @@ action:
 }
 
 func successfulPostWithHeadersInvocationFixture() fixture {
-	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{  "firstName": "John", "lastName": "Doe" }`))
 	So(err, ShouldBeNil)
 
 	req.Header.Set("Content-Type", "application/json")
@@ -473,15 +499,16 @@ func successfulPostWithHeadersInvocationFixture() fixture {
 		fnReq: req,
 		config: fmt.Sprintf(`
 condition: |
-  data.foo == "bar"
+  data.lastName == "Doe"
 
 action:
   uri: 'http://127.0.0.1:%d'
   method: POST
   headers:
-    "Content-Type": application/json
-    "X-Appid": |
-      {{if eq .data.foo "bar"}}Rmlyc3Qgb3B0aW9u={{else}}U2Vjb25kIG9wdGlvbg=={{end}}`, port),
+    "Content-Type": text/plain
+    "X-Userid": '{{if eq .data.firstName "John"}}Rmlyc3Qgb3B0aW9u={{else}}U2Vjb25kIG9wdGlvbg=={{end}}'
+  body: |
+    Hello {{ .data.firstName }} {{ .data.lastName }} !`, port),
 		arrange: func(c C) func() {
 			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 			So(err, ShouldBeNil)
@@ -490,11 +517,16 @@ action:
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					c.So(r.URL.String(), ShouldEqual, "/")
 					c.So(r.Header, ShouldContainKey, "Content-Type")
-					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
-					c.So(r.Header.Get("X-Appid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
+					c.So(r.Header.Get("Content-Type"), ShouldEqual, "text/plain")
+					c.So(r.Header.Get("X-Userid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
+
+					payload, err := ioutil.ReadAll(r.Body)
+					c.So(err, ShouldBeNil)
+
+					c.So(string(payload), ShouldEqual, "Hello John Doe !")
 
 					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
-					_, _ = io.WriteString(w, "hello world\n")
+					_, _ = io.WriteString(w, "ok\n")
 				}))
 				if err != nil {
 					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
@@ -528,6 +560,7 @@ func TestHttpFunction(t *testing.T) {
 			badActionURITemplateFixture,
 			badActionMethodTemplateFixture,
 			badActionHeaderTemplateFixture,
+			badActionBodyTemplateFixture,
 			crappyCallerFixture,
 			badInvocationFixture,
 			successfulGetInvocationFixture,
