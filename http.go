@@ -389,6 +389,18 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 				action.Headers[k] = v
 			}
 
+			// body
+			action.Body, err = renderTemplatedString("body", actionSpec.Body, env)
+			if err != nil {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusBadRequest).
+					Message(err.Error()).
+					Data(&ResponseData{"build-action"}).
+					Send()
+				return
+			}
+
 			hlog.
 				FromRequest(r).
 				Info().
