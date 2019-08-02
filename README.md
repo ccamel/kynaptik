@@ -3,7 +3,7 @@
 
 ![under-construction](https://img.shields.io/badge/%F0%9F%9A%A7-under%20construction-important)
 [![build-status](https://travis-ci.org/ccamel/kynaptik.svg?branch=master)](https://travis-ci.org/ccamel/kynaptik)
-[![coverage-status](https://coveralls.io/repos/github/ccamel/kynaptik/badge.svg?branch=master)](https://coveralls.io/github/ccamel/kynaptik?branch=master)
+[![coverage-status](https://coveralls.io/repos/github/ccamel/kynaptik/badge.svg?branch=master&kill_cache=1)](https://coveralls.io/github/ccamel/kynaptik?branch=master)
 [![maintainability](https://api.codeclimate.com/v1/badges/bb38e3df1b0591b4d1ef/maintainability)](https://codeclimate.com/github/ccamel/kynaptik/maintainability)
 [![stackshare](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/ccamel/kynaptik)
 
