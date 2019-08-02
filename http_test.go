@@ -82,9 +82,33 @@ action:
 	}
 }
 
-func incorrectIncomingRequestFixture() fixture {
+func unsupportedMediaTypeIncomingRequestFixture() fixture {
 	req, err := http.NewRequest("GET", "/", nil)
 	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: `
+condition: |
+  true == true
+
+action:
+  uri: 'null://'
+  method: GET
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusUnsupportedMediaType)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"check-content-type"},"message":"unsupported media type. Expected: application/json","status":"fail"}`)
+		},
+	}
+}
+
+func unparsableMediaTypeIncomingRequestFixture() fixture {
+	req, err := http.NewRequest("GET", "/", nil)
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "text/")
 
 	return fixture{
 		fnReq: req,
@@ -420,7 +444,8 @@ func TestHttpFunction(t *testing.T) {
 		fixtures := []fixtureSupplier{
 			notWellFormedYamlConfigurationFixture,
 			incorrectConfigurationFixture,
-			incorrectIncomingRequestFixture,
+			unsupportedMediaTypeIncomingRequestFixture,
+			unparsableMediaTypeIncomingRequestFixture,
 			invalidJSONRequestFixture,
 			unparsableConditionFixture,
 			invalidConditionFixture,
