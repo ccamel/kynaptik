@@ -374,7 +374,7 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 
 			// headers
 			for k, t := range actionSpec.Headers {
-				v, err := renderTemplatedString("header", t, env)
+				action.Headers[k], err = renderTemplatedString("header", t, env)
 
 				if err != nil {
 					_, _ = jsend.
@@ -385,8 +385,6 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 						Send()
 					return
 				}
-
-				action.Headers[k] = v
 			}
 
 			// body
