@@ -53,8 +53,8 @@ func (a Action) MarshalZerologObject(e *zerolog.Event) {
 }
 
 type Config struct {
-	Condition string `yaml:"condition" validate:"nonzero"`
-	Action    Action `yaml:"action" validate:"nonzero"`
+	PreCondition string `yaml:"preCondition" validate:"nonzero"`
+	Action       Action `yaml:"action" validate:"nonzero"`
 }
 
 type ResponseData struct {
@@ -66,11 +66,11 @@ type environment map[string]interface{}
 type ctxKey string
 
 var (
-	ctxKeyConfig        = ctxKey("config")
-	ctxKeyConditionNode = ctxKey("condition-node")
-	ctxKeyData          = ctxKey("data")
-	ctxKeyEnv           = ctxKey("environment")
-	ctxKeyAction        = ctxKey("action")
+	ctxKeyConfig           = ctxKey("config")
+	ctxKeyPreConditionNode = ctxKey("pre-condition-node")
+	ctxKeyData             = ctxKey("data")
+	ctxKeyEnv              = ctxKey("environment")
+	ctxKeyAction           = ctxKey("action")
 )
 
 func main() {
@@ -103,7 +103,7 @@ func invokeλ(w http.ResponseWriter, r *http.Request, configProvider func() io.R
 			parseConditionHandler(),
 			parsePayloadHandler(),
 			buildEnvironmentHandler(),
-			matchConditionHandler(),
+			matchPreConditionHandler(),
 			buildActionHandler(),
 		).
 		ThenFunc(doAction).
@@ -155,7 +155,7 @@ func loadConfigurationHandler(configProvider func() io.ReadCloser) func(next htt
 			hlog.
 				FromRequest(r).
 				Info().
-				Str("condition", c.Condition).
+				Str("condition", c.PreCondition).
 				Str("action.uri", c.Action.URI).
 				Msg("🗒️ configuration loaded")
 
@@ -204,7 +204,7 @@ func checkContentTypeHandler() func(next http.Handler) http.Handler {
 func parseConditionHandler() func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			condition := r.Context().Value(ctxKeyConfig).(Config).Condition
+			condition := r.Context().Value(ctxKeyConfig).(Config).PreCondition
 
 			node, err := expr.Parse(condition)
 			if err != nil {
@@ -222,7 +222,7 @@ func parseConditionHandler() func(next http.Handler) http.Handler {
 				Info().
 				Msg("☑️️ condition parsed")
 
-			r = r.WithContext(context.WithValue(r.Context(), ctxKeyConditionNode, node))
+			r = r.WithContext(context.WithValue(r.Context(), ctxKeyPreConditionNode, node))
 
 			Ͱ.ServeHTTP(w, r)
 		})
@@ -286,10 +286,10 @@ func buildEnvironmentHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func matchConditionHandler() func(next http.Handler) http.Handler {
+func matchPreConditionHandler() func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			node := r.Context().Value(ctxKeyConditionNode).(expr.Node)
+			node := r.Context().Value(ctxKeyPreConditionNode).(expr.Node)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
 			out, err := expr.Run(node, env)
@@ -332,7 +332,7 @@ func matchConditionHandler() func(next http.Handler) http.Handler {
 					Message(
 						fmt.Sprintf(
 							"incorrect type %T returned when evaluating condition '%s'. Expected 'boolean'",
-							out, r.Context().Value(ctxKeyConfig).(Config).Condition)).
+							out, r.Context().Value(ctxKeyConfig).(Config).PreCondition)).
 					Data(&ResponseData{"match-condition"}).
 					Send()
 			}

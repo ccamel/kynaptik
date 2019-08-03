@@ -47,7 +47,7 @@ func notWellFormedYamlConfigurationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action
@@ -68,7 +68,7 @@ func incorrectConfigurationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action:
@@ -89,7 +89,7 @@ func unsupportedMediaTypeIncomingRequestFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action:
@@ -113,7 +113,7 @@ func unparsableMediaTypeIncomingRequestFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action:
@@ -137,7 +137,7 @@ func invalidJSONRequestFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   a != "bar2"
 
 action:
@@ -161,7 +161,7 @@ func unparsableConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   !=
 
 action:
@@ -185,7 +185,7 @@ func invalidConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   a != "bar2"
 
 action:
@@ -209,7 +209,7 @@ func wrongTypeConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo
 
 action:
@@ -234,7 +234,7 @@ func unsatisfiedConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo != "bar"
 
 action:
@@ -275,7 +275,7 @@ func crappyCallerFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo != "bar"
 
 action:
@@ -299,7 +299,7 @@ func badActionURITemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -323,7 +323,7 @@ func badActionMethodTemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -347,7 +347,7 @@ func badActionHeaderTemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -373,7 +373,7 @@ func badActionBodyTemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -402,7 +402,7 @@ func badInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -453,7 +453,7 @@ func timeoutInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -499,7 +499,7 @@ func successfulGetInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -544,7 +544,7 @@ func successfulPostWithHeadersInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
+preCondition: |
   data.lastName == "Doe"
 
 action:
