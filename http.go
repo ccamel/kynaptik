@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/antonmedv/expr"
+	"github.com/flimzy/donewriter"
 	"github.com/gamegos/jsend"
 	"github.com/justinas/alice"
 	"github.com/motemen/go-loghttp"
@@ -34,8 +35,7 @@ type Action struct {
 	Method  string            `yaml:"method" validate:"nonzero,min=3"`
 	Headers map[string]string `yaml:"headers"`
 	Body    string            `yaml:"body"`
-	// Timeout specifies a time limit (in ms) for HTTP requests made.
-	Timeout int64 `yaml:"timeout"`
+	Timeout int64             `yaml:"timeout"` // Timeout specifies a time limit (in ms) for HTTP requests made.
 }
 
 func (a Action) MarshalZerologObject(e *zerolog.Event) {
@@ -53,8 +53,9 @@ func (a Action) MarshalZerologObject(e *zerolog.Event) {
 }
 
 type Config struct {
-	PreCondition string `yaml:"preCondition"`
-	Action       Action `yaml:"action" validate:"nonzero"`
+	PreCondition  string `yaml:"preCondition"`
+	Action        Action `yaml:"action" validate:"nonzero"`
+	PostCondition string `yaml:"postCondition"`
 }
 
 type ResponseData struct {
@@ -66,11 +67,12 @@ type environment map[string]interface{}
 type ctxKey string
 
 var (
-	ctxKeyConfig           = ctxKey("config")
-	ctxKeyPreConditionNode = ctxKey("pre-condition-node")
-	ctxKeyData             = ctxKey("data")
-	ctxKeyEnv              = ctxKey("environment")
-	ctxKeyAction           = ctxKey("action")
+	ctxKeyConfig            = ctxKey("config")
+	ctxKeyPreConditionNode  = ctxKey("pre-condition-node")
+	ctxKeyPostConditionNode = ctxKey("post-condition-node")
+	ctxKeyData              = ctxKey("data")
+	ctxKeyEnv               = ctxKey("environment")
+	ctxKeyAction            = ctxKey("action")
 )
 
 func main() {
@@ -93,20 +95,33 @@ func invokeλ(w http.ResponseWriter, r *http.Request, configProvider func() io.R
 			Str("λ", "http").
 			Logger()
 
+	configFactory := func() Config {
+		return Config{
+			// PreCondition specifies the default pre-condition value. Here, we accept everything.
+			PreCondition: "true",
+			// PostCondition specifies the default post-condition to satisfy in order to consider the HTTP call
+			// successful. Here, we consider a status code 2xx to be successful.
+			PostCondition: "response.StatusCode >= 200 and response.StatusCode < 300",
+		}
+	}
+
 	alice.
 		New(
 			hlog.NewHandler(l),
 			hlog.RequestIDHandler("req-id", "Request-Id"),
 			logIncomingRequestHandler(),
-			loadConfigurationHandler(configProvider),
+			loadConfigurationHandler(configProvider, configFactory),
 			checkContentTypeHandler(),
 			parsePreConditionHandler(),
+			parsePostConditionHandler(),
 			parsePayloadHandler(),
 			buildEnvironmentHandler(),
 			matchPreConditionHandler(),
 			buildActionHandler(),
+			donewriter.WrapWriter,
+			matchPostConditionHandler(),
 		).
-		ThenFunc(doAction).
+		Then(doActionHandler(doAction)).
 		ServeHTTP(w, r)
 }
 
@@ -124,12 +139,12 @@ func logIncomingRequestHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func loadConfigurationHandler(configProvider func() io.ReadCloser) func(next http.Handler) http.Handler {
+func loadConfigurationHandler(
+	configProvider func() io.ReadCloser,
+	configFactory func() Config) func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c := Config{
-				PreCondition: "true",
-			}
+			c := configFactory()
 
 			in := configProvider()
 			defer func() { _ = in.Close() }()
@@ -231,6 +246,34 @@ func parsePreConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
+func parsePostConditionHandler() func(next http.Handler) http.Handler {
+	return func(Ͱ http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			condition := r.Context().Value(ctxKeyConfig).(Config).PostCondition
+
+			node, err := expr.Parse(condition)
+			if err != nil {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusServiceUnavailable).
+					Message(err.Error()).
+					Data(&ResponseData{"parse-post-condition"}).
+					Send()
+				return
+			}
+
+			hlog.
+				FromRequest(r).
+				Info().
+				Msg("☑️️ postCondition parsed")
+
+			r = r.WithContext(context.WithValue(r.Context(), ctxKeyPostConditionNode, node))
+
+			Ͱ.ServeHTTP(w, r)
+		})
+	}
+}
+
 func parsePayloadHandler() func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -300,7 +343,7 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 					Wrap(w).
 					Status(http.StatusBadRequest).
 					Message(err.Error()).
-					Data(&ResponseData{"match-condition"}).
+					Data(&ResponseData{"match-pre-condition"}).
 					Send()
 				return
 			}
@@ -311,20 +354,20 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 					hlog.
 						FromRequest(r).
 						Info().
-						Msg("👌️️ condition matched")
+						Msg("👌️️ pre-condition matched")
 
 					Ͱ.ServeHTTP(w, r)
 				} else {
 					hlog.
 						FromRequest(r).
 						Info().
-						Msg("⛔️️ condition didn't match")
+						Msg("⛔️️ pre-condition didn't match")
 
 					_, _ = jsend.
 						Wrap(w).
 						Status(http.StatusOK).
 						Message("unsatisfied condition").
-						Data(&ResponseData{"match-condition"}).
+						Data(&ResponseData{"match-pre-condition"}).
 						Send()
 				}
 			default:
@@ -335,7 +378,7 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 						fmt.Sprintf(
 							"incorrect type %T returned when evaluating condition '%s'. Expected 'boolean'",
 							out, r.Context().Value(ctxKeyConfig).(Config).PreCondition)).
-					Data(&ResponseData{"match-condition"}).
+					Data(&ResponseData{"match-pre-condition"}).
 					Send()
 			}
 		})
@@ -417,45 +460,134 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func doAction(w http.ResponseWriter, r *http.Request) {
-	action := r.Context().Value(ctxKeyAction).(Action)
+func matchPostConditionHandler() func(next http.Handler) http.Handler {
+	return func(Ͱ http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			Ͱ.ServeHTTP(w, r)
 
-	hlog.
-		FromRequest(r).
-		Info().
-		Str("endpoint", action.URI).
-		Msg("⚡ invoking endpoint")
+			if done, _ := donewriter.WriterIsDone(w); done {
+				// nothing more to do, something has already been reported (typical case: an error).
+				return
+			}
 
+			action := r.Context().Value(ctxKeyAction).(Action)
+			config := r.Context().Value(ctxKeyConfig).(Config)
+			node := r.Context().Value(ctxKeyPostConditionNode).(expr.Node)
+			env := r.Context().Value(ctxKeyEnv).(environment)
+
+			out, err := expr.Run(node, env)
+			if err != nil {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusBadRequest).
+					Message(err.Error()).
+					Data(&ResponseData{"match-post-condition"}).
+					Send()
+				return
+			}
+
+			switch v := out.(type) {
+			case bool:
+				if v {
+					hlog.
+						FromRequest(r).
+						Info().
+						Str("endpoint", action.URI).
+						Msg("👍 invocation succeeded")
+
+					_, _ = jsend.
+						Wrap(w).
+						Status(http.StatusOK).
+						Message("HTTP call succeeded").
+						Data(&ResponseData{"match-post-condition"}).
+						Send()
+				} else {
+					hlog.
+						FromRequest(r).
+						Error().
+						Str("endpoint", action.URI).
+						Str("postCondition", config.PostCondition).
+						Err(fmt.Errorf("condition not satisfied")).
+						Msg("❌ invocation failed")
+
+					_, _ = jsend.
+						Wrap(w).
+						Status(http.StatusBadGateway).
+						Message(fmt.Sprintf("endpoint '%s' call didn't satisfy postCondition: %s", action.URI, config.PostCondition)).
+						Data(&ResponseData{"match-post-condition"}).
+						Send()
+
+				}
+			default:
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusBadRequest).
+					Message(
+						fmt.Sprintf(
+							"incorrect type %T returned when evaluating post-condition '%s'. Expected 'boolean'",
+							out, config.PostCondition)).
+					Data(&ResponseData{"match-post-condition"}).
+					Send()
+			}
+		})
+	}
+}
+
+func doActionHandler(actionFunc func(action Action, log *zerolog.Logger) (*http.Response, error)) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		action := r.Context().Value(ctxKeyAction).(Action)
+
+		response, err := actionFunc(action, hlog.FromRequest(r))
+		if response != nil {
+			defer response.Body.Close()
+		}
+
+		if err != nil {
+			hlog.
+				FromRequest(r).
+				Error().
+				Err(err).
+				Msg("❌ invocation failed")
+
+			_, _ = jsend.
+				Wrap(w).
+				Status(http.StatusBadGateway).
+				Message(err.Error()).
+				Data(&ResponseData{"do-action"}).
+				Send()
+			return
+		}
+
+		// put the response in the environment to share it for the layers above
+		env := r.Context().Value(ctxKeyEnv).(environment)
+		env["response"] = response
+	})
+}
+
+func doAction(action Action, logger *zerolog.Logger) (*http.Response, error) {
 	request, err := http.NewRequest(action.Method, action.URI, strings.NewReader(action.Body))
 	if err != nil {
-		_, _ = jsend.
-			Wrap(w).
-			Status(http.StatusBadGateway).
-			Message(err.Error()).
-			Data(&ResponseData{"do-action"}).
-			Send()
-		return
+		return nil, err
 	}
-
 	for k, v := range action.Headers {
 		request.Header.Set(k, v)
 	}
-
 	var result httpstat.Result
+	defer func() {
+		result.End(time.Now())
+	}()
 	ctx := httpstat.WithHTTPStat(request.Context(), &result)
 	request = request.WithContext(ctx)
 
 	client := http.Client{
 		Transport: &loghttp.Transport{
 			LogRequest: func(request *http.Request) {
-				hlog.
-					FromRequest(r).
+				logger.
 					Info().
 					Msgf("📤 %s %s", request.Method, request.URL)
 			},
 			LogResponse: func(response *http.Response) {
-				hlog.
-					FromRequest(r).
+				logger.
 					Info().
 					Object("response", responseToLogObjectMarshaller(response)).
 					Object("stats", resultToLogObjectMarshaller(&result)).
@@ -466,56 +598,8 @@ func doAction(w http.ResponseWriter, r *http.Request) {
 	}
 
 	response, err := client.Do(request)
-	if response != nil {
-		defer response.Body.Close()
-	}
 
-	result.End(time.Now())
-
-	if err != nil {
-		hlog.
-			FromRequest(r).
-			Error().
-			Err(err).
-			Msg("❌ invocation failed")
-
-		_, _ = jsend.
-			Wrap(w).
-			Status(http.StatusBadGateway).
-			Message(err.Error()).
-			Data(&ResponseData{"do-action"}).
-			Send()
-		return
-	}
-
-	if response.StatusCode < 200 || response.StatusCode > 299 {
-		hlog.
-			FromRequest(r).
-			Error().
-			Err(fmt.Errorf(response.Status)).
-			Msg("❌ invocation failed")
-
-		_, _ = jsend.
-			Wrap(w).
-			Status(http.StatusBadGateway).
-			Message(fmt.Sprintf("endpoint '%s' returned status %d (%s)", action.URI, response.StatusCode, response.Status)).
-			Data(&ResponseData{"do-action"}).
-			Send()
-
-		return
-	}
-
-	hlog.
-		FromRequest(r).
-		Info().
-		Msg("👍 invocation succeeded")
-
-	_, _ = jsend.
-		Wrap(w).
-		Status(http.StatusOK).
-		Message("HTTP call succeeded").
-		Data(&ResponseData{"do-action"}).
-		Send()
+	return response, err
 }
 
 func renderTemplatedString(name, s string, ctx map[string]interface{}) (string, error) {
