@@ -56,7 +56,7 @@ metadata:
   name: kynaptik-http-configmap
 data:
   function-spec: |
-    condition: |
+    preCondition: |
       data.foo == "bar"
 
     action:
@@ -74,8 +74,8 @@ data:
 
 The yaml configuration has the following structure:
 
-- `condition`: mandatory, specifies the condition (textual) to be satisfied for the function to be triggered. The condition is an expression 
-(text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr) engine.
+- `preCondition`: optional, specifies the condition (textual) to be satisfied for the function to be triggered. The condition is an expression 
+(text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr) engine. `true` by default.
 - `action`: specifies the action to perform.
   - `uri`: mandatory, the URI of the endpoint to invoke. Shall resolve to a URI according to [rfc3986](https://www.ietf.org/rfc/rfc3986.txt).
   Protocol shall be either `http` or `https`.
