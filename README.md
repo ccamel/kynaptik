@@ -60,7 +60,8 @@ data:
       data.foo == "bar"
 
     action:
-      uri: 'https://foo-bar'
+      uri: 'https://foo-bar'      
+      timeout: 10000
       method: GET
       headers:
         Content-Type: application/json
@@ -70,31 +71,36 @@ data:
         {
           "message": "Hello from {{.data.user.firstname}} {{.data.user.lastname}}"
         }
+    postCondition: |
+      response.StatusCode >= 200 and response.StatusCode < 300
 ```
 
 The yaml configuration has the following structure:
 
 - `preCondition`: optional, specifies the condition (textual) to be satisfied for the function to be triggered. The condition is an expression 
-(text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr) engine. `true` by default.
-- `action`: specifies the action to perform.
+(text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine. `true` by default.
+- `action`: specifies the action to perform. The action specification is _templated_ using the [go template engine](https://golang.org/pkg/text/template/).
+See section below to have details about the evaluation environment.
   - `uri`: mandatory, the URI of the endpoint to invoke. Shall resolve to a URI according to [rfc3986](https://www.ietf.org/rfc/rfc3986.txt).
   Protocol shall be either `http` or `https`.
   - `method`: mandatory, the HTTP method: `GET`, `OPTIONS`, `GET`, `HEAD`, `POST`, `PUT`, `DELETE`, `TRACE`, `CONNECT` (according to [rfc2616](https://www.ietf.org/rfc/rfc2616.txt)).
   - `headers`: the HTTP headers as a map key/value.
-  - `body`: the content of the body (texttual).
-
-The action specification is _templated_ using the [go template engine](https://golang.org/pkg/text/template/). See section below to have
-details about the evaluation environment.
+  - `body`: the content of the body (textual).
+  - `timeout`: optional, specifies the timeout for waiting for data (in ms).
+- `postCondition`: optional, specifies the condition (textual) to be satisfied for the response of the call be considered successful.
+The condition is an expression (text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine.
+By default, the condition consider a status code 2xx to be successful.
 
 ## Evaluation environment
 
-Both the _condition_ expression and the _action_ template are processed against an environment.
+Both the _preCondition_ expression and the _action_ template are processed against an environment.
 
 The environment is following:
 
 - `data`: the incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings).
 - `config`: the current configuration.
 
+For the _postCondition_, the [response](https://golang.org/pkg/net/http/#Response) is added to the environment. 
 
 [Kubernetes]: https://kubernetes.io/
 [Fission]: https://fission.io/
