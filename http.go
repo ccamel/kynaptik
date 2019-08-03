@@ -34,6 +34,8 @@ type Action struct {
 	Method  string            `yaml:"method" validate:"nonzero,min=3"`
 	Headers map[string]string `yaml:"headers"`
 	Body    string            `yaml:"body"`
+	// Timeout specifies a time limit (in ms) for HTTP requests made.
+	Timeout int64 `yaml:"timeout"`
 }
 
 func (a Action) MarshalZerologObject(e *zerolog.Event) {
@@ -345,6 +347,7 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 			env := r.Context().Value(ctxKeyEnv).(environment)
 			action := Action{
 				Headers: map[string]string{},
+				Timeout: actionSpec.Timeout,
 			}
 			var err error
 
@@ -457,6 +460,7 @@ func doAction(w http.ResponseWriter, r *http.Request) {
 					Msgf("📥 %d %s", response.StatusCode, request.URL)
 			},
 		},
+		Timeout: time.Duration(action.Timeout),
 	}
 
 	response, err := client.Do(request)
