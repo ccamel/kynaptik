@@ -47,7 +47,7 @@ func notWellFormedYamlConfigurationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action
@@ -68,7 +68,7 @@ func incorrectConfigurationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action:
@@ -89,7 +89,7 @@ func unsupportedMediaTypeIncomingRequestFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action:
@@ -113,7 +113,7 @@ func unparsableMediaTypeIncomingRequestFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   true == true
 
 action:
@@ -137,7 +137,7 @@ func invalidJSONRequestFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   a != "bar2"
 
 action:
@@ -161,7 +161,7 @@ func unparsableConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   !=
 
 action:
@@ -171,7 +171,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-condition"},"message":"unexpected token operator(!=)\n!=\n\n^","status":"error"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-pre-condition"},"message":"unexpected token operator(!=)\n!=\n\n^","status":"error"}`)
 		},
 	}
 }
@@ -185,7 +185,7 @@ func invalidConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   a != "bar2"
 
 action:
@@ -195,7 +195,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-condition"},"message":"undefined: a","status":"fail"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"undefined: a","status":"fail"}`)
 		},
 	}
 }
@@ -209,7 +209,7 @@ func wrongTypeConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo
 
 action:
@@ -220,7 +220,7 @@ action:
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadRequest)
 			So(rr.Body.String(), ShouldEqual,
-				`{"data":{"stage":"match-condition"},"message":"incorrect type string returned when evaluating condition 'data.foo\n'. Expected 'boolean'","status":"fail"}`)
+				`{"data":{"stage":"match-pre-condition"},"message":"incorrect type string returned when evaluating condition 'data.foo\n'. Expected 'boolean'","status":"fail"}`)
 		},
 	}
 }
@@ -234,7 +234,7 @@ func unsatisfiedConditionFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo != "bar"
 
 action:
@@ -244,7 +244,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusOK)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-condition"},"message":"unsatisfied condition","status":"success"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"unsatisfied condition","status":"success"}`)
 		},
 	}
 }
@@ -275,7 +275,7 @@ func crappyCallerFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo != "bar"
 
 action:
@@ -299,7 +299,7 @@ func badActionURITemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -323,7 +323,7 @@ func badActionMethodTemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -347,7 +347,7 @@ func badActionHeaderTemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -373,7 +373,7 @@ func badActionBodyTemplateFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: `
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -402,9 +402,6 @@ func badInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
-  data.foo == "bar"
-
 action:
   uri: 'http://127.0.0.1:%d?param={{ .data.foo }}'
   method: GET
@@ -436,7 +433,7 @@ action:
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadGateway)
 			So(rr.Body.String(), ShouldEqual, fmt.Sprintf(
-				`{"data":{"stage":"do-action"},"message":"endpoint 'http://127.0.0.1:%d?param=bar' returned status 401 (401 Unauthorized)","status":"error"}`, port))
+				`{"data":{"stage":"match-post-condition"},"message":"endpoint 'http://127.0.0.1:%d?param=bar' call didn't satisfy postCondition: response.StatusCode \u003e= 200 and response.StatusCode \u003c 300","status":"error"}`, port))
 		},
 	}
 }
@@ -453,7 +450,7 @@ func timeoutInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -499,7 +496,7 @@ func successfulGetInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
+preCondition: |
   data.foo == "bar"
 
 action:
@@ -527,7 +524,157 @@ action:
 		},
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusOK)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"do-action"},"message":"HTTP call succeeded","status":"success"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
+		},
+	}
+}
+
+func getInvocationWithUnparseablePostConditionFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: fmt.Sprintf(`
+preCondition: |
+  true
+
+action:
+  uri: 'http://127.0.0.1:%d'
+  method: GET
+
+postCondition: |
+  response.StatusCode == ?
+`, port),
+		arrange: func(c C) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					w.Header().Add("Content-Type", "text/plain")
+					w.WriteHeader(http.StatusTeapot)
+					_, _ = io.WriteString(w, "hello world\n")
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-post-condition"},"message":"unexpected token punctuation(\"?\")\nresponse.StatusCode == ?\n\n-----------------------^","status":"error"}`)
+		},
+	}
+}
+
+func getInvocationWithInvalidPostConditionFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: fmt.Sprintf(`
+preCondition: |
+  true
+
+action:
+  uri: 'http://127.0.0.1:%d'
+  method: GET
+
+postCondition: |
+  response.StatusCode == foo
+`, port),
+		arrange: func(c C) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					w.Header().Add("Content-Type", "text/plain")
+					w.WriteHeader(http.StatusTeapot)
+					_, _ = io.WriteString(w, "hello world\n")
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"undefined: foo","status":"fail"}`)
+		},
+	}
+}
+
+func successfulGetInvocationWithPostConditionFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: fmt.Sprintf(`
+preCondition: |
+  true
+
+action:
+  uri: 'http://127.0.0.1:%d'
+  method: GET
+
+postCondition: |
+  response.StatusCode == 418 and response.Header.Get("Content-Type") == "text/plain"
+`, port),
+		arrange: func(c C) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					w.Header().Add("Content-Type", "text/plain")
+					w.WriteHeader(http.StatusTeapot)
+					_, _ = io.WriteString(w, "hello world\n")
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(rr *httptest.ResponseRecorder) {
+			//So(rr.Code, ShouldEqual, http.StatusOK)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
 		},
 	}
 }
@@ -544,7 +691,7 @@ func successfulPostWithHeadersInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-condition: |
+preCondition: |
   data.lastName == "Doe"
 
 action:
@@ -586,7 +733,7 @@ action:
 		},
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusOK)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"do-action"},"message":"HTTP call succeeded","status":"success"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
 		},
 	}
 }
@@ -611,6 +758,9 @@ func TestHttpFunction(t *testing.T) {
 			badInvocationFixture,
 			timeoutInvocationFixture,
 			successfulGetInvocationFixture,
+			successfulGetInvocationWithPostConditionFixture,
+			getInvocationWithUnparseablePostConditionFixture,
+			getInvocationWithInvalidPostConditionFixture,
 			successfulPostWithHeadersInvocationFixture,
 		}
 
