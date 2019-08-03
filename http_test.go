@@ -171,7 +171,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-condition"},"message":"unexpected token operator(!=)\n!=\n\n^","status":"error"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-pre-condition"},"message":"unexpected token operator(!=)\n!=\n\n^","status":"error"}`)
 		},
 	}
 }
@@ -402,9 +402,6 @@ func badInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-preCondition: |
-  data.foo == "bar"
-
 action:
   uri: 'http://127.0.0.1:%d?param={{ .data.foo }}'
   method: GET

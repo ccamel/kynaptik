@@ -53,7 +53,7 @@ func (a Action) MarshalZerologObject(e *zerolog.Event) {
 }
 
 type Config struct {
-	PreCondition string `yaml:"preCondition" validate:"nonzero"`
+	PreCondition string `yaml:"preCondition"`
 	Action       Action `yaml:"action" validate:"nonzero"`
 }
 
@@ -100,7 +100,7 @@ func invokeλ(w http.ResponseWriter, r *http.Request, configProvider func() io.R
 			logIncomingRequestHandler(),
 			loadConfigurationHandler(configProvider),
 			checkContentTypeHandler(),
-			parseConditionHandler(),
+			parsePreConditionHandler(),
 			parsePayloadHandler(),
 			buildEnvironmentHandler(),
 			matchPreConditionHandler(),
@@ -127,7 +127,9 @@ func logIncomingRequestHandler() func(next http.Handler) http.Handler {
 func loadConfigurationHandler(configProvider func() io.ReadCloser) func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			c := Config{}
+			c := Config{
+				PreCondition: "true",
+			}
 
 			in := configProvider()
 			defer func() { _ = in.Close() }()
@@ -201,7 +203,7 @@ func checkContentTypeHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func parseConditionHandler() func(next http.Handler) http.Handler {
+func parsePreConditionHandler() func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			condition := r.Context().Value(ctxKeyConfig).(Config).PreCondition
@@ -212,7 +214,7 @@ func parseConditionHandler() func(next http.Handler) http.Handler {
 					Wrap(w).
 					Status(http.StatusServiceUnavailable).
 					Message(err.Error()).
-					Data(&ResponseData{"parse-condition"}).
+					Data(&ResponseData{"parse-pre-condition"}).
 					Send()
 				return
 			}
@@ -220,7 +222,7 @@ func parseConditionHandler() func(next http.Handler) http.Handler {
 			hlog.
 				FromRequest(r).
 				Info().
-				Msg("☑️️ condition parsed")
+				Msg("☑️️ preCondition parsed")
 
 			r = r.WithContext(context.WithValue(r.Context(), ctxKeyPreConditionNode, node))
 
