@@ -433,7 +433,7 @@ action:
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadGateway)
 			So(rr.Body.String(), ShouldEqual, fmt.Sprintf(
-				`{"data":{"stage":"do-action"},"message":"endpoint 'http://127.0.0.1:%d?param=bar' returned status 401 (401 Unauthorized)","status":"error"}`, port))
+				`{"data":{"stage":"match-post-condition"},"message":"endpoint 'http://127.0.0.1:%d?param=bar' call didn't satisfy postCondition: response.StatusCode \u003e= 200 and response.StatusCode \u003c 300","status":"error"}`, port))
 		},
 	}
 }
@@ -524,7 +524,57 @@ action:
 		},
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusOK)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"do-action"},"message":"HTTP call succeeded","status":"success"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
+		},
+	}
+}
+
+func successfulGetInvocationWithPostConditionFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: fmt.Sprintf(`
+preCondition: |
+  true
+
+action:
+  uri: 'http://127.0.0.1:%d'
+  method: GET
+
+postCondition: |
+  response.StatusCode == 418 and response.Header.Get("Content-Type") == "text/plain"
+`, port),
+		arrange: func(c C) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					w.Header().Add("Content-Type", "text/plain")
+					w.WriteHeader(http.StatusTeapot)
+					_, _ = io.WriteString(w, "hello world\n")
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(rr *httptest.ResponseRecorder) {
+			//So(rr.Code, ShouldEqual, http.StatusOK)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
 		},
 	}
 }
@@ -583,7 +633,7 @@ action:
 		},
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusOK)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"do-action"},"message":"HTTP call succeeded","status":"success"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
 		},
 	}
 }
@@ -608,6 +658,7 @@ func TestHttpFunction(t *testing.T) {
 			badInvocationFixture,
 			timeoutInvocationFixture,
 			successfulGetInvocationFixture,
+			successfulGetInvocationWithPostConditionFixture,
 			successfulPostWithHeadersInvocationFixture,
 		}
 
