@@ -195,7 +195,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-condition"},"message":"undefined: a","status":"fail"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"undefined: a","status":"fail"}`)
 		},
 	}
 }
@@ -220,7 +220,7 @@ action:
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadRequest)
 			So(rr.Body.String(), ShouldEqual,
-				`{"data":{"stage":"match-condition"},"message":"incorrect type string returned when evaluating condition 'data.foo\n'. Expected 'boolean'","status":"fail"}`)
+				`{"data":{"stage":"match-pre-condition"},"message":"incorrect type string returned when evaluating condition 'data.foo\n'. Expected 'boolean'","status":"fail"}`)
 		},
 	}
 }
@@ -244,7 +244,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusOK)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-condition"},"message":"unsatisfied condition","status":"success"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"unsatisfied condition","status":"success"}`)
 		},
 	}
 }
