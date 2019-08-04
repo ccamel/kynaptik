@@ -394,29 +394,28 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 				Headers: map[string]string{},
 				Timeout: actionSpec.Timeout,
 			}
-			var err error
-
-			// url
-			action.URI, err = renderTemplatedString("url", actionSpec.URI, env)
-			if err != nil {
+			sendError := func(err error) {
 				_, _ = jsend.
 					Wrap(w).
 					Status(http.StatusBadRequest).
 					Message(err.Error()).
 					Data(&ResponseData{"build-action"}).
 					Send()
+			}
+
+			var err error
+
+			// url
+			action.URI, err = renderTemplatedString("url", actionSpec.URI, env)
+			if err != nil {
+				sendError(err)
 				return
 			}
 
 			// method
 			action.Method, err = renderTemplatedString("method", actionSpec.Method, env)
 			if err != nil {
-				_, _ = jsend.
-					Wrap(w).
-					Status(http.StatusBadRequest).
-					Message(err.Error()).
-					Data(&ResponseData{"build-action"}).
-					Send()
+				sendError(err)
 				return
 			}
 
@@ -425,12 +424,7 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 				action.Headers[k], err = renderTemplatedString("header", t, env)
 
 				if err != nil {
-					_, _ = jsend.
-						Wrap(w).
-						Status(http.StatusBadRequest).
-						Message(err.Error()).
-						Data(&ResponseData{"build-action"}).
-						Send()
+					sendError(err)
 					return
 				}
 			}
@@ -438,12 +432,7 @@ func buildActionHandler() func(next http.Handler) http.Handler {
 			// body
 			action.Body, err = renderTemplatedString("body", actionSpec.Body, env)
 			if err != nil {
-				_, _ = jsend.
-					Wrap(w).
-					Status(http.StatusBadRequest).
-					Message(err.Error()).
-					Data(&ResponseData{"build-action"}).
-					Send()
+				sendError(err)
 				return
 			}
 
@@ -475,14 +464,18 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 			node := r.Context().Value(ctxKeyPostConditionNode).(expr.Node)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
-			out, err := expr.Run(node, env)
-			if err != nil {
+			sendError := func(status int, err error) {
 				_, _ = jsend.
 					Wrap(w).
-					Status(http.StatusBadRequest).
+					Status(status).
 					Message(err.Error()).
 					Data(&ResponseData{"match-post-condition"}).
 					Send()
+			}
+
+			out, err := expr.Run(node, env)
+			if err != nil {
+				sendError(http.StatusBadRequest, err)
 				return
 			}
 
@@ -510,24 +503,13 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 						Err(fmt.Errorf("condition not satisfied")).
 						Msg("❌ invocation failed")
 
-					_, _ = jsend.
-						Wrap(w).
-						Status(http.StatusBadGateway).
-						Message(fmt.Sprintf("endpoint '%s' call didn't satisfy postCondition: %s", action.URI, config.PostCondition)).
-						Data(&ResponseData{"match-post-condition"}).
-						Send()
-
+					sendError(http.StatusBadGateway, fmt.Errorf(
+						"endpoint '%s' call didn't satisfy postCondition: %s", action.URI, config.PostCondition))
 				}
 			default:
-				_, _ = jsend.
-					Wrap(w).
-					Status(http.StatusBadRequest).
-					Message(
-						fmt.Sprintf(
-							"incorrect type %T returned when evaluating post-condition '%s'. Expected 'boolean'",
-							out, config.PostCondition)).
-					Data(&ResponseData{"match-post-condition"}).
-					Send()
+				sendError(http.StatusBadRequest, fmt.Errorf(
+					"incorrect type %T returned when evaluating post-condition '%s'. Expected 'boolean'",
+					out, config.PostCondition))
 			}
 		})
 	}
