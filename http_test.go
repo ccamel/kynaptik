@@ -478,8 +478,10 @@ action:
 		},
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadGateway)
-			So(rr.Body.String(), ShouldEqual, fmt.Sprintf(
-				`{"data":{"stage":"do-action"},"message":"Get http://127.0.0.1:%d: net/http: request canceled while waiting for connection (Client.Timeout exceeded while awaiting headers)","status":"error"}`, port))
+			So(rr.Body.String(), ShouldStartWith, fmt.Sprintf(
+				`{"data":{"stage":"do-action"},"message":"Get http://127.0.0.1:%d: net/http: request canceled`, port))
+			So(rr.Body.String(), ShouldEndWith,
+				`(Client.Timeout exceeded while awaiting headers)","status":"error"}`)
 		},
 	}
 }
@@ -790,7 +792,7 @@ func TestEntryPoints(t *testing.T) {
 	})
 	Convey("When calling Http 'EntryPoint' function", t, func(c C) {
 		w := httptest.NewRecorder()
-		r, _ :=  http.NewRequest("GET", "/", strings.NewReader("hello, world!"))
+		r, _ := http.NewRequest("GET", "/", strings.NewReader("hello, world!"))
 
 		EntryPoint(w, r)
 

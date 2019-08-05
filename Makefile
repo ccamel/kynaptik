@@ -17,7 +17,7 @@ test: build
 	go test -v -covermode=count -coverprofile c.out .
 
 lint: install-tools
-	golangci-lint run
+	golangci-lint run --deadline 5m
 
 goconvey: build
 	goconvey -excludedDirs build,config,doc,dist,specs,vendor
