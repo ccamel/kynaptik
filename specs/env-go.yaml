@@ -8,13 +8,13 @@ spec:
   TerminationGracePeriod: 360
   builder:
     command: build
-    image: fission/go-builder
+    image: fission/go-builder-1.12
   keeparchive: false
   poolsize: 3
   resources: {}
   runtime:
     functionendpointport: 0
-    image: fission/go-env
+    image: fission/go-env-1.12
     loadendpointpath: ""
     loadendpointport: 0
   version: 2
