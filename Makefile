@@ -1,5 +1,5 @@
 .EXPORT_ALL_VARIABLES:
-.PHONY: install-tools build test lint goconvey
+.PHONY: install-tools build test lint goconvey dist
 
 GO111MODULE=on
 
@@ -22,11 +22,8 @@ lint: install-tools
 goconvey: build
 	goconvey -excludedDirs build,config,doc,dist,specs,vendor
 
-dist: build vendor
-	zip -r dist/kynaptik-http.zip http.go vendor/
-
-vendor:
-	go mod vendor
+dist: build
+	zip -r dist/kynaptik-http.zip README.md http.go go.mod go.sum
 
 build/%.so:
 	go build -buildmode=plugin -o $@ $<
