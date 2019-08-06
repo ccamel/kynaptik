@@ -1,5 +1,5 @@
 .EXPORT_ALL_VARIABLES:
-.PHONY: install-tools build test lint goconvey dist
+.PHONY: install-tools install-deps build test lint goconvey dist
 
 GO111MODULE=on
 
@@ -11,13 +11,16 @@ install-tools:
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.17.1; \
 	fi
 
+install-deps:
+	go get .
+
 build: build/http.so
 
 test: build
 	go test -v -covermode=count -coverprofile c.out .
 
 lint: install-tools
-	golangci-lint run --deadline 5m
+	golangci-lint run
 
 goconvey: build
 	goconvey -excludedDirs build,config,doc,dist,specs,vendor
