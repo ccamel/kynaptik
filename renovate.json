@@ -8,5 +8,8 @@
   ],
   "postUpdateOptions": [
     "gomodTidy"
+  ],
+  "ignoreDeps": [
+    "github.com/antonmedv/expr"
   ]
 }
