@@ -171,7 +171,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-pre-condition"},"message":"unexpected token operator(!=)\n!=\n\n^","status":"error"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-pre-condition"},"message":"syntax error: mismatched input '!=' expecting {'len', 'all', 'none', 'any', 'one', 'filter', 'map', '[', '(', '{', '.', '+', '-', '!', 'not', 'nil', '#', BooleanLiteral, IntegerLiteral, FloatLiteral, HexIntegerLiteral, Identifier, StringLiteral} (1:1)\n | !=\n | ^","status":"error"}`)
 		},
 	}
 }
@@ -186,7 +186,7 @@ func invalidConditionFixture() fixture {
 		fnReq: req,
 		config: `
 preCondition: |
-  a != "bar2"
+  a + 5 == 6
 
 action:
   uri: 'null://'
@@ -195,7 +195,7 @@ action:
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"undefined: a","status":"fail"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:5)\n | a + 5 == 6\n | ....^","status":"fail"}`)
 		},
 	}
 }
@@ -576,7 +576,7 @@ postCondition: |
 		},
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-post-condition"},"message":"unexpected token punctuation(\"?\")\nresponse.StatusCode == ?\n\n-----------------------^","status":"error"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-post-condition"},"message":"syntax error: mismatched input '?' expecting {'len', 'all', 'none', 'any', 'one', 'filter', 'map', '[', '(', '{', '.', '+', '-', '!', 'not', 'nil', '#', BooleanLiteral, IntegerLiteral, FloatLiteral, HexIntegerLiteral, Identifier, StringLiteral} (1:24)\n | response.StatusCode == ?\n | .......................^","status":"error"}`)
 		},
 	}
 }
@@ -601,7 +601,7 @@ action:
   method: GET
 
 postCondition: |
-  response.StatusCode == foo
+  response.StatusCode
 `, port),
 		arrange: func(c C) func() {
 			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -626,7 +626,7 @@ postCondition: |
 		},
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"undefined: foo","status":"fail"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"incorrect type int returned when evaluating post-condition 'response.StatusCode\n'. Expected 'boolean'","status":"fail"}`)
 		},
 	}
 }
