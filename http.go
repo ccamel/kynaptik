@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/antonmedv/expr"
+	"github.com/antonmedv/expr/vm"
 	"github.com/flimzy/donewriter"
 	"github.com/gamegos/jsend"
 	"github.com/justinas/alice"
@@ -67,12 +68,12 @@ type environment map[string]interface{}
 type ctxKey string
 
 var (
-	ctxKeyConfig            = ctxKey("config")
-	ctxKeyPreConditionNode  = ctxKey("pre-condition-node")
-	ctxKeyPostConditionNode = ctxKey("post-condition-node")
-	ctxKeyData              = ctxKey("data")
-	ctxKeyEnv               = ctxKey("environment")
-	ctxKeyAction            = ctxKey("action")
+	ctxKeyConfig               = ctxKey("config")
+	ctxKeyPreConditionProgram  = ctxKey("pre-condition-program")
+	ctxKeyPostConditionProgram = ctxKey("post-condition-program")
+	ctxKeyData                 = ctxKey("data")
+	ctxKeyEnv                  = ctxKey("environment")
+	ctxKeyAction               = ctxKey("action")
 )
 
 func main() {
@@ -223,7 +224,7 @@ func parsePreConditionHandler() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			condition := r.Context().Value(ctxKeyConfig).(Config).PreCondition
 
-			node, err := expr.Parse(condition)
+			program, err := expr.Compile(condition)
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
@@ -239,7 +240,7 @@ func parsePreConditionHandler() func(next http.Handler) http.Handler {
 				Info().
 				Msg("☑️️ preCondition parsed")
 
-			r = r.WithContext(context.WithValue(r.Context(), ctxKeyPreConditionNode, node))
+			r = r.WithContext(context.WithValue(r.Context(), ctxKeyPreConditionProgram, program))
 
 			Ͱ.ServeHTTP(w, r)
 		})
@@ -251,7 +252,7 @@ func parsePostConditionHandler() func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			condition := r.Context().Value(ctxKeyConfig).(Config).PostCondition
 
-			node, err := expr.Parse(condition)
+			program, err := expr.Compile(condition)
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
@@ -267,7 +268,7 @@ func parsePostConditionHandler() func(next http.Handler) http.Handler {
 				Info().
 				Msg("☑️️ postCondition parsed")
 
-			r = r.WithContext(context.WithValue(r.Context(), ctxKeyPostConditionNode, node))
+			r = r.WithContext(context.WithValue(r.Context(), ctxKeyPostConditionProgram, program))
 
 			Ͱ.ServeHTTP(w, r)
 		})
@@ -334,10 +335,10 @@ func buildEnvironmentHandler() func(next http.Handler) http.Handler {
 func matchPreConditionHandler() func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			node := r.Context().Value(ctxKeyPreConditionNode).(expr.Node)
+			program := r.Context().Value(ctxKeyPreConditionProgram).(*vm.Program)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
-			out, err := expr.Run(node, env)
+			out, err := expr.Run(program, env)
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
@@ -461,7 +462,7 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 
 			action := r.Context().Value(ctxKeyAction).(Action)
 			config := r.Context().Value(ctxKeyConfig).(Config)
-			node := r.Context().Value(ctxKeyPostConditionNode).(expr.Node)
+			program := r.Context().Value(ctxKeyPostConditionProgram).(*vm.Program)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
 			sendError := func(status int, err error) {
@@ -473,7 +474,7 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 					Send()
 			}
 
-			out, err := expr.Run(node, env)
+			out, err := expr.Run(program, env)
 			if err != nil {
 				sendError(http.StatusBadRequest, err)
 				return
