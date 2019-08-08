@@ -5,11 +5,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"mime"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"text/template"
 	"time"
@@ -24,6 +24,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
+	"github.com/spf13/afero"
 	"github.com/tcnksm/go-httpstat"
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
@@ -83,13 +84,10 @@ func main() {
 
 // EntryPoint is the entry point for this Fission function
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
-	invokeλ(w, r, func() io.ReadCloser {
-		f, _ := os.Open("/configs/default/function-spec.yml")
-		return f
-	})
+	invokeλ(w, r, afero.NewOsFs())
 }
 
-func invokeλ(w http.ResponseWriter, r *http.Request, configProvider func() io.ReadCloser) {
+func invokeλ(w http.ResponseWriter, r *http.Request, fs afero.Fs) {
 	l :=
 		log.Logger.
 			With().
@@ -111,7 +109,7 @@ func invokeλ(w http.ResponseWriter, r *http.Request, configProvider func() io.R
 			hlog.NewHandler(l),
 			hlog.RequestIDHandler("req-id", "Request-Id"),
 			logIncomingRequestHandler(),
-			loadConfigurationHandler(configProvider, configFactory),
+			loadConfigurationHandler(fs, configFactory),
 			checkContentTypeHandler(),
 			parsePreConditionHandler(),
 			parsePostConditionHandler(),
@@ -140,16 +138,73 @@ func logIncomingRequestHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func loadConfigurationHandler(
-	configProvider func() io.ReadCloser,
-	configFactory func() Config) func(next http.Handler) http.Handler {
+func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			configName := "function-spec.yml"
+			root := fmt.Sprintf("/%s/%s",
+				"configs", r.Header.Get("X-Fission-Function-Namespace"))
+
+			fsutil := &afero.Afero{Fs: fs}
+
+			var configPath string
+			err := fsutil.Walk(root, func(path string, info os.FileInfo, err error) error {
+				if err != nil {
+					return err
+				}
+
+				if info.IsDir() {
+					return nil
+				}
+
+				if configPath != "" {
+					return filepath.SkipDir
+				}
+
+				if info.Name() == configName {
+					configPath = path
+				}
+
+				return nil
+			})
+
+			if err != nil {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusServiceUnavailable).
+					Message(err.Error()).
+					Data(&ResponseData{"load-configuration"}).
+					Send()
+				return
+			}
+
+			if configPath == "" {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusServiceUnavailable).
+					Message(fmt.Sprintf(`no configuration file %s found in %s`, configName, root)).
+					Data(&ResponseData{"load-configuration"}).
+					Send()
+				return
+			}
+
+			in, err := fs.Open(configPath)
+			defer func() {
+				if in != nil {
+					_ = in.Close()
+				}
+			}()
+			if err != nil {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusServiceUnavailable).
+					Message(err.Error()).
+					Data(&ResponseData{"load-configuration"}).
+					Send()
+				return
+			}
+
 			c := configFactory()
-
-			in := configProvider()
-			defer func() { _ = in.Close() }()
-
 			if err := yaml.NewDecoder(in).Decode(&c); err != nil {
 				_, _ = jsend.
 					Wrap(w).

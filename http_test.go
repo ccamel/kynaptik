@@ -5,6 +5,7 @@ import (
 	"github.com/phayes/freeport"
 	"github.com/rs/zerolog"
 	. "github.com/smartystreets/goconvey/convey"
+	"github.com/spf13/afero"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -33,11 +34,37 @@ func noop(c C) func() { return func() {} }
 func (f fixture) act() *httptest.ResponseRecorder {
 	rr := httptest.NewRecorder()
 
-	configProvider := func() io.ReadCloser { return ioutil.NopCloser(strings.NewReader(f.config)) }
+	f.fnReq.Header.Set("X-Fission-Function-Namespace", "my-namespace")
 
-	http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { invokeλ(w, r, configProvider) }).ServeHTTP(rr, f.fnReq)
+	// install mock for config
+	appFS := afero.NewMemMapFs()
+	path := "/configs/my-namespace/a-config-map"
+	err := appFS.MkdirAll(path, 0755)
+	So(err, ShouldBeNil)
+
+	if f.config != "" {
+		err = afero.WriteFile(appFS, path+"/function-spec.yml", []byte(f.config), 0644)
+		So(err, ShouldBeNil)
+	}
+
+	http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { invokeλ(w, r, appFS) }).ServeHTTP(rr, f.fnReq)
 
 	return rr
+}
+
+func notFoundYamlConfigurationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", nil)
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: "",
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"no configuration file function-spec.yml found in /configs/my-namespace","status":"error"}`)
+		},
+	}
 }
 
 func notWellFormedYamlConfigurationFixture() fixture {
@@ -743,6 +770,7 @@ action:
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []fixtureSupplier{
+			notFoundYamlConfigurationFixture,
 			notWellFormedYamlConfigurationFixture,
 			incorrectConfigurationFixture,
 			unsupportedMediaTypeIncomingRequestFixture,
@@ -790,16 +818,17 @@ func TestEntryPoints(t *testing.T) {
 			So(main, ShouldPanic)
 		})
 	})
-	Convey("When calling Http 'EntryPoint' function", t, func(c C) {
+	Convey("When calling Http 'EntryPoint' function with no directory", t, func(c C) {
 		w := httptest.NewRecorder()
 		r, _ := http.NewRequest("GET", "/", strings.NewReader("hello, world!"))
+		r.Header.Set("X-Fission-Function-Namespace", "my-namespace")
 
 		EntryPoint(w, r)
 
 		Convey("Then post-conditions shall be satisfied", func() {
 			So(w.Code, ShouldEqual, 503)
 			So(w.Header().Get("Content-Type"), ShouldEqual, "application/json")
-			So(w.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"yaml: input error: invalid argument","status":"error"}`)
+			So(w.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"lstat /configs/my-namespace: no such file or directory","status":"error"}`)
 		})
 	})
 }
