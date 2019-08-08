@@ -4,15 +4,17 @@ metadata:
   namespace: default
   name: kynaptik-http-configmap
 data:
-  function-spec: |
+  function-spec.yml: |
     condition: |
-      foo == "test"
+      data.message != ""
 
     action:
-      uri: 'https://foo-bar'
-      method: GET
+      uri: 'https://webhook.site/{{ .data.key }}'
+      method: POST
       headers:
         Content-Type: application/json
 
       body: |
-        test
+        {
+          message: {{ .data.message }}
+        }
