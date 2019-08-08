@@ -130,7 +130,7 @@ func logIncomingRequestHandler() func(next http.Handler) http.Handler {
 			hlog.
 				FromRequest(r).
 				Info().
-				Int64("size", r.ContentLength).
+				Object("request", requestToLogObjectMarshaller(r)).
 				Msg("⚙️ λ invoked")
 
 			Ͱ.ServeHTTP(w, r)
@@ -654,6 +654,24 @@ func renderTemplatedString(name, s string, ctx map[string]interface{}) (string, 
 	}
 
 	return out.String(), nil
+}
+
+func requestToLogObjectMarshaller(r *http.Request) zerolog.LogObjectMarshaler {
+	return loggerFunc(func(e *zerolog.Event) {
+		if r != nil {
+			h := zerolog.Dict()
+
+			for k, v := range r.Header {
+				h.Strs(k, v)
+			}
+
+			e.
+				Str("url", r.URL.String()).
+				Str("method", r.Method).
+				Int64("content-length", r.ContentLength).
+				Dict("headers", h)
+		}
+	})
 }
 
 func responseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshaler {
