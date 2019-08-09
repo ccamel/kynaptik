@@ -2,10 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/phayes/freeport"
-	"github.com/rs/zerolog"
-	. "github.com/smartystreets/goconvey/convey"
-	"github.com/spf13/afero"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -17,6 +13,11 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/phayes/freeport"
+	"github.com/rs/zerolog"
+	. "github.com/smartystreets/goconvey/convey"
+	"github.com/spf13/afero"
 )
 
 type fixture struct {
@@ -47,7 +48,11 @@ func (f fixture) act() *httptest.ResponseRecorder {
 		So(err, ShouldBeNil)
 	}
 
-	http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { invokeλ(w, r, appFS) }).ServeHTTP(rr, f.fnReq)
+	http.
+		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			invokeλ(w, r, appFS, HTTPConfigFactory, HTTPActionFactory)
+		}).
+		ServeHTTP(rr, f.fnReq)
 
 	return rr
 }
@@ -57,8 +62,8 @@ func notFoundYamlConfigurationFixture() fixture {
 	So(err, ShouldBeNil)
 
 	return fixture{
-		fnReq: req,
-		config: "",
+		fnReq:   req,
+		config:  "",
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -88,9 +93,11 @@ action
 	}
 }
 
-func incorrectConfigurationFixture() fixture {
-	req, err := http.NewRequest("GET", "/", nil)
+func emptyActionConfigurationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{}"))
 	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
 
 	return fixture{
 		fnReq: req,
@@ -99,12 +106,57 @@ preCondition: |
   true == true
 
 action:
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"Action: zero value","status":"error"}`)
+		},
+	}
+}
+
+func incorrectConfigurationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{}"))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+preCondition: |
+  true == true
+
+action: |
   uri: 'null://'
 `,
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"Action.Method: zero value","status":"error"}`)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"Method: zero value","status":"error"}`)
+		},
+	}
+}
+
+func incorrectActionConfigurationFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{}"))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	return fixture{
+		fnReq: req,
+		config: `
+preCondition: |
+  true == true
+
+action: |
+  bad
+`,
+		arrange: noop,
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `+"`bad`"+` into main.HTTPAction","status":"error"}`)
 		},
 	}
 }
@@ -119,7 +171,7 @@ func unsupportedMediaTypeIncomingRequestFixture() fixture {
 preCondition: |
   true == true
 
-action:
+action: |
   uri: 'null://'
   method: GET
 `,
@@ -143,7 +195,7 @@ func unparsableMediaTypeIncomingRequestFixture() fixture {
 preCondition: |
   true == true
 
-action:
+action: |
   uri: 'null://'
   method: GET
 `,
@@ -167,7 +219,7 @@ func invalidJSONRequestFixture() fixture {
 preCondition: |
   a != "bar2"
 
-action:
+action:  |
   uri: 'null://'
   method: GET
 `,
@@ -191,7 +243,7 @@ func unparsableConditionFixture() fixture {
 preCondition: |
   !=
 
-action:
+action: |
   uri: 'null://'
   method: GET
 `,
@@ -203,7 +255,7 @@ action:
 	}
 }
 
-func invalidConditionFixture() fixture {
+func invalidPreConditionFixture() fixture {
 	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar2"  }`))
 	So(err, ShouldBeNil)
 
@@ -215,7 +267,7 @@ func invalidConditionFixture() fixture {
 preCondition: |
   a + 5 == 6
 
-action:
+action: |
   uri: 'null://'
   method: GET
 `,
@@ -223,6 +275,56 @@ action:
 		assert: func(rr *httptest.ResponseRecorder) {
 			So(rr.Code, ShouldEqual, http.StatusBadRequest)
 			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:5)\n | a + 5 == 6\n | ....^","status":"fail"}`)
+		},
+	}
+}
+
+func invalidPostConditionFixture() fixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
+	So(err, ShouldBeNil)
+
+	req.Header.Set("Content-Type", "application/json")
+
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return fixture{
+		fnReq: req,
+		config: fmt.Sprintf(`
+preCondition: |
+  true
+
+action: |
+  uri: 'http://127.0.0.1:%d'
+  method: GET
+
+postCondition: |
+  a + 5 == 6
+`, port),
+		arrange: func(c C) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					w.Header().Add("Content-Type", "text/plain")
+					w.WriteHeader(http.StatusTeapot)
+					_, _ = io.WriteString(w, "hello world\n")
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(rr *httptest.ResponseRecorder) {
+			So(rr.Code, ShouldEqual, http.StatusBadRequest)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:5)\n | a + 5 == 6\n | ....^","status":"fail"}`)
 		},
 	}
 }
@@ -239,7 +341,7 @@ func wrongTypeConditionFixture() fixture {
 preCondition: |
   data.foo
 
-action:
+action: |
   uri: 'null://'
   method: GET
 `,
@@ -264,7 +366,7 @@ func unsatisfiedConditionFixture() fixture {
 preCondition: |
   data.foo != "bar"
 
-action:
+action: |
   uri: 'null://'
   method: GET
 `,
@@ -305,7 +407,7 @@ func crappyCallerFixture() fixture {
 preCondition: |
   data.foo != "bar"
 
-action:
+action: |
   uri: 'null://'
   method: GET
 `,
@@ -317,7 +419,7 @@ action:
 	}
 }
 
-func badActionURITemplateFixture() fixture {
+func badActionTemplateFixture() fixture {
 	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
 	So(err, ShouldBeNil)
 
@@ -329,64 +431,14 @@ func badActionURITemplateFixture() fixture {
 preCondition: |
   data.foo == "bar"
 
-action:
+action: |
   uri: 'http://127.0.0.1?{{ unknownfunc }}'
   method: POST
 `,
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
-			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: url:1: function \"unknownfunc\" not defined","status":"fail"}`)
-		},
-	}
-}
-
-func badActionMethodTemplateFixture() fixture {
-	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
-	So(err, ShouldBeNil)
-
-	req.Header.Set("Content-Type", "application/json")
-
-	return fixture{
-		fnReq: req,
-		config: `
-preCondition: |
-  data.foo == "bar"
-
-action:
-  uri: 'http://127.0.0.1'
-  method: '{{ unknownfunc }}'
-`,
-		arrange: noop,
-		assert: func(rr *httptest.ResponseRecorder) {
-			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: method:1: function \"unknownfunc\" not defined","status":"fail"}`)
-		},
-	}
-}
-
-func badActionHeaderTemplateFixture() fixture {
-	req, err := http.NewRequest("GET", "/", strings.NewReader(`{ "foo": "bar"  }`))
-	So(err, ShouldBeNil)
-
-	req.Header.Set("Content-Type", "application/json")
-
-	return fixture{
-		fnReq: req,
-		config: `
-preCondition: |
-  data.foo == "bar"
-
-action:
-  uri: 'http://127.0.0.1'
-  method: GET
-  headers:
-    X-AppId: '{{ unknownfunc }}'
-`,
-		arrange: noop,
-		assert: func(rr *httptest.ResponseRecorder) {
-			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: header:1: function \"unknownfunc\" not defined","status":"fail"}`)
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: action:1: function \"unknownfunc\" not defined","status":"error"}`)
 		},
 	}
 }
@@ -403,7 +455,7 @@ func badActionBodyTemplateFixture() fixture {
 preCondition: |
   data.foo == "bar"
 
-action:
+action: |
   uri: 'http://127.0.0.1'
   method: POST
   body: |
@@ -429,7 +481,7 @@ func badInvocationFixture() fixture {
 	return fixture{
 		fnReq: req,
 		config: fmt.Sprintf(`
-action:
+action: |
   uri: 'http://127.0.0.1:%d?param={{ .data.foo }}'
   method: GET
 `, port),
@@ -480,7 +532,7 @@ func timeoutInvocationFixture() fixture {
 preCondition: |
   data.foo == "bar"
 
-action:
+action: |
   uri: 'http://127.0.0.1:%d'
   method: GET
   timeout: 150
@@ -528,7 +580,7 @@ func successfulGetInvocationFixture() fixture {
 preCondition: |
   data.foo == "bar"
 
-action:
+action: |
   uri: 'http://127.0.0.1:%d'
   method: GET
 `, port),
@@ -573,7 +625,7 @@ func getInvocationWithUnparseablePostConditionFixture() fixture {
 preCondition: |
   true
 
-action:
+action: |
   uri: 'http://127.0.0.1:%d'
   method: GET
 
@@ -623,7 +675,7 @@ func getInvocationWithInvalidPostConditionFixture() fixture {
 preCondition: |
   true
 
-action:
+action: |
   uri: 'http://127.0.0.1:%d'
   method: GET
 
@@ -673,7 +725,7 @@ func successfulGetInvocationWithPostConditionFixture() fixture {
 preCondition: |
   true
 
-action:
+action: |
   uri: 'http://127.0.0.1:%d'
   method: GET
 
@@ -723,7 +775,7 @@ func successfulPostWithHeadersInvocationFixture() fixture {
 preCondition: |
   data.lastName == "Doe"
 
-action:
+action: |
   uri: 'http://127.0.0.1:%d'
   method: POST
   headers:
@@ -772,18 +824,18 @@ func TestHttpFunction(t *testing.T) {
 		fixtures := []fixtureSupplier{
 			notFoundYamlConfigurationFixture,
 			notWellFormedYamlConfigurationFixture,
+			emptyActionConfigurationFixture,
 			incorrectConfigurationFixture,
+			incorrectActionConfigurationFixture,
 			unsupportedMediaTypeIncomingRequestFixture,
 			unparsableMediaTypeIncomingRequestFixture,
 			invalidJSONRequestFixture,
 			unparsableConditionFixture,
-			invalidConditionFixture,
+			invalidPreConditionFixture,
+			invalidPostConditionFixture,
 			wrongTypeConditionFixture,
 			unsatisfiedConditionFixture,
-			badActionURITemplateFixture,
-			badActionMethodTemplateFixture,
-			badActionHeaderTemplateFixture,
-			badActionBodyTemplateFixture,
+			badActionTemplateFixture,
 			crappyCallerFixture,
 			badInvocationFixture,
 			timeoutInvocationFixture,
@@ -818,15 +870,15 @@ func TestEntryPoints(t *testing.T) {
 			So(main, ShouldPanic)
 		})
 	})
-	Convey("When calling Http 'EntryPoint' function with no directory", t, func(c C) {
+	Convey("When calling Http 'HTTPEntryPoint' function with no directory", t, func(c C) {
 		w := httptest.NewRecorder()
 		r, _ := http.NewRequest("GET", "/", strings.NewReader("hello, world!"))
 		r.Header.Set("X-Fission-Function-Namespace", "my-namespace")
 
-		EntryPoint(w, r)
+		HTTPEntryPoint(w, r)
 
 		Convey("Then post-conditions shall be satisfied", func() {
-			So(w.Code, ShouldEqual, 503)
+			So(w.Code, ShouldEqual, http.StatusServiceUnavailable)
 			So(w.Header().Get("Content-Type"), ShouldEqual, "application/json")
 			So(w.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"lstat /configs/my-namespace: no such file or directory","status":"error"}`)
 		})

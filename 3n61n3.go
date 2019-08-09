@@ -17,7 +17,6 @@ import (
 	"github.com/flimzy/donewriter"
 	"github.com/gamegos/jsend"
 	"github.com/justinas/alice"
-	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/afero"
@@ -40,22 +39,18 @@ var (
 	ctxKeyAction               = ctxKey("action")
 )
 
-func invokeλ(w http.ResponseWriter, r *http.Request, fs afero.Fs) {
+func invokeλ(
+	w http.ResponseWriter,
+	r *http.Request,
+	fs afero.Fs,
+	configFactory ConfigFactory,
+	actionFactory ActionFactory,
+) {
 	l :=
 		log.Logger.
 			With().
 			Str("λ", "http").
 			Logger()
-
-	configFactory := func() Config {
-		return Config{
-			// PreCondition specifies the default pre-condition value. Here, we accept everything.
-			PreCondition: "true",
-			// PostCondition specifies the default post-condition to satisfy in order to consider the HTTP call
-			// successful. Here, we consider a status code 2xx to be successful.
-			PostCondition: "response.StatusCode >= 200 and response.StatusCode < 300",
-		}
-	}
 
 	alice.
 		New(
@@ -69,11 +64,11 @@ func invokeλ(w http.ResponseWriter, r *http.Request, fs afero.Fs) {
 			parsePayloadHandler(),
 			buildEnvironmentHandler(),
 			matchPreConditionHandler(),
-			buildActionHandler(),
+			buildActionHandler(actionFactory),
 			donewriter.WrapWriter,
 			matchPostConditionHandler(),
 		).
-		Then(doActionHandler(doAction)).
+		Then(doActionHandler()).
 		ServeHTTP(w, r)
 }
 
@@ -181,8 +176,7 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 			hlog.
 				FromRequest(r).
 				Info().
-				Str("condition", c.PreCondition).
-				Str("action.uri", c.Action.URI).
+				Object("configuration", c).
 				Msg("🗒️ configuration loaded")
 
 			r = r.WithContext(context.WithValue(r.Context(), ctxKeyConfig, c))
@@ -394,53 +388,34 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func buildActionHandler() func(next http.Handler) http.Handler {
+func buildActionHandler(actionFactory ActionFactory) func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			actionSpec := r.Context().Value(ctxKeyConfig).(Config).Action
 			env := r.Context().Value(ctxKeyEnv).(environment)
-			action := Action{
-				Headers: map[string]string{},
-				Timeout: actionSpec.Timeout,
-			}
+			action := actionFactory()
+
 			sendError := func(err error) {
 				_, _ = jsend.
 					Wrap(w).
-					Status(http.StatusBadRequest).
+					Status(http.StatusServiceUnavailable).
 					Message(err.Error()).
 					Data(&ResponseData{"build-action"}).
 					Send()
 			}
 
-			var err error
-
-			// url
-			action.URI, err = renderTemplatedString("url", actionSpec.URI, env)
+			in, err := renderTemplatedString("action", actionSpec, env)
 			if err != nil {
 				sendError(err)
 				return
 			}
 
-			// method
-			action.Method, err = renderTemplatedString("method", actionSpec.Method, env)
-			if err != nil {
+			if err := yaml.NewDecoder(in).Decode(action); err != nil {
 				sendError(err)
 				return
 			}
 
-			// headers
-			for k, t := range actionSpec.Headers {
-				action.Headers[k], err = renderTemplatedString("header", t, env)
-
-				if err != nil {
-					sendError(err)
-					return
-				}
-			}
-
-			// body
-			action.Body, err = renderTemplatedString("body", actionSpec.Body, env)
-			if err != nil {
+			if err := action.Validate(); err != nil {
 				sendError(err)
 				return
 			}
@@ -494,7 +469,7 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 					hlog.
 						FromRequest(r).
 						Info().
-						Str("endpoint", action.URI).
+						Str("endpoint", action.GetURI()).
 						Msg("👍 invocation succeeded")
 
 					_, _ = jsend.
@@ -507,13 +482,13 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 					hlog.
 						FromRequest(r).
 						Error().
-						Str("endpoint", action.URI).
+						Str("endpoint", action.GetURI()).
 						Str("postCondition", config.PostCondition).
 						Err(fmt.Errorf("condition not satisfied")).
 						Msg("❌ invocation failed")
 
 					sendError(http.StatusBadGateway, fmt.Errorf(
-						"endpoint '%s' call didn't satisfy postCondition: %s", action.URI, config.PostCondition))
+						"endpoint '%s' call didn't satisfy postCondition: %s", action.GetURI(), config.PostCondition))
 				}
 			default:
 				sendError(http.StatusBadRequest, fmt.Errorf(
@@ -524,14 +499,11 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func doActionHandler(actionFunc func(action Action, log *zerolog.Logger) (*http.Response, error)) http.Handler {
+func doActionHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		action := r.Context().Value(ctxKeyAction).(Action)
 
-		response, err := actionFunc(action, hlog.FromRequest(r))
-		if response != nil {
-			defer response.Body.Close()
-		}
+		response, err := action.DoAction(r.Context())
 
 		if err != nil {
 			hlog.
