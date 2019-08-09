@@ -463,8 +463,8 @@ action: |
 `,
 		arrange: noop,
 		assert: func(rr *httptest.ResponseRecorder) {
-			So(rr.Code, ShouldEqual, http.StatusBadRequest)
-			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: body:1: function \"unknownfunc\" not defined","status":"fail"}`)
+			So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+			So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: action:4: function \"unknownfunc\" not defined","status":"error"}`)
 		},
 	}
 }
@@ -836,6 +836,7 @@ func TestHttpFunction(t *testing.T) {
 			wrongTypeConditionFixture,
 			unsatisfiedConditionFixture,
 			badActionTemplateFixture,
+			badActionBodyTemplateFixture,
 			crappyCallerFixture,
 			badInvocationFixture,
 			timeoutInvocationFixture,
