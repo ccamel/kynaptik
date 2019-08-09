@@ -60,7 +60,7 @@ data:
     preCondition: |
       data.foo == "bar"
 
-    action:
+    action: |
       uri: 'https://foo-bar'      
       timeout: 10000
       method: GET
