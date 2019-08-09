@@ -2,7 +2,9 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"net/http"
+	"net/url"
 	"strings"
 	"time"
 
@@ -58,12 +60,17 @@ func (a HTTPAction) MarshalZerologObject(e *zerolog.Event) {
 }
 
 func (a HTTPAction) Validate() error {
-	if err := validator.Validate(a.ActionCore); err != nil {
+	if err := validator.Validate(a); err != nil {
 		return err
 	}
 
-	if err := validator.Validate(a); err != nil {
+	u, err := url.Parse(a.URI)
+	if err != nil {
 		return err
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("unsupported scheme %s. Only http(s) supported", u.Scheme)
 	}
 
 	return nil
