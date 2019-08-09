@@ -22,7 +22,7 @@ test: build
 lint: install-tools
 	golangci-lint run
 
-goconvey: build
+goconvey:
 	goconvey -excludedDirs build,config,doc,dist,specs,vendor
 
 dist: build

@@ -1,9 +1,9 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
+
 	"fmt"
 	"io/ioutil"
 	"mime"
@@ -11,58 +11,21 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"text/template"
-	"time"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
 	"github.com/flimzy/donewriter"
 	"github.com/gamegos/jsend"
 	"github.com/justinas/alice"
-	"github.com/motemen/go-loghttp"
-	"github.com/motemen/go-nuts/roundtime"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/hlog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/afero"
-	"github.com/tcnksm/go-httpstat"
 	"gopkg.in/validator.v2"
 	"gopkg.in/yaml.v2"
 )
 
 const mediaTypeJSON = "application/json"
-
-type Action struct {
-	URI     string            `yaml:"uri" validate:"nonzero,min=7"`
-	Method  string            `yaml:"method" validate:"nonzero,min=3"`
-	Headers map[string]string `yaml:"headers"`
-	Body    string            `yaml:"body"`
-	Timeout int64             `yaml:"timeout"` // Timeout specifies a time limit (in ms) for HTTP requests made.
-}
-
-func (a Action) MarshalZerologObject(e *zerolog.Event) {
-	d := zerolog.Dict()
-
-	for k, v := range a.Headers {
-		d.Str(k, v)
-	}
-
-	e.
-		Str("uri", a.URI).
-		Str("method", a.Method).
-		Dict("headers", d).
-		Str("body", a.Body)
-}
-
-type Config struct {
-	PreCondition  string `yaml:"preCondition"`
-	Action        Action `yaml:"action" validate:"nonzero"`
-	PostCondition string `yaml:"postCondition"`
-}
-
-type ResponseData struct {
-	Stage string `json:"stage"`
-}
 
 type environment map[string]interface{}
 
@@ -76,16 +39,6 @@ var (
 	ctxKeyEnv                  = ctxKey("environment")
 	ctxKeyAction               = ctxKey("action")
 )
-
-func main() {
-	// not used - make the linter happy
-	EntryPoint(nil, nil)
-}
-
-// EntryPoint is the entry point for this Fission function
-func EntryPoint(w http.ResponseWriter, r *http.Request) {
-	invokeλ(w, r, afero.NewOsFs())
-}
 
 func invokeλ(w http.ResponseWriter, r *http.Request, fs afero.Fs) {
 	l :=
@@ -600,121 +553,4 @@ func doActionHandler(actionFunc func(action Action, log *zerolog.Logger) (*http.
 		env := r.Context().Value(ctxKeyEnv).(environment)
 		env["response"] = response
 	})
-}
-
-func doAction(action Action, logger *zerolog.Logger) (*http.Response, error) {
-	request, err := http.NewRequest(action.Method, action.URI, strings.NewReader(action.Body))
-	if err != nil {
-		return nil, err
-	}
-	for k, v := range action.Headers {
-		request.Header.Set(k, v)
-	}
-	var result httpstat.Result
-	defer func() {
-		result.End(time.Now())
-	}()
-	ctx := httpstat.WithHTTPStat(request.Context(), &result)
-	request = request.WithContext(ctx)
-
-	client := http.Client{
-		Transport: &loghttp.Transport{
-			LogRequest: func(request *http.Request) {
-				logger.
-					Info().
-					Msgf("📤 %s %s", request.Method, request.URL)
-			},
-			LogResponse: func(response *http.Response) {
-				logger.
-					Info().
-					Object("response", responseToLogObjectMarshaller(response)).
-					Object("stats", resultToLogObjectMarshaller(&result)).
-					Msgf("📥 %d %s", response.StatusCode, request.URL)
-			},
-		},
-		Timeout: time.Duration(action.Timeout),
-	}
-
-	response, err := client.Do(request)
-
-	return response, err
-}
-
-func renderTemplatedString(name, s string, ctx map[string]interface{}) (string, error) {
-	t, err := template.
-		New(name).
-		Parse(s)
-	if err != nil {
-		return "", err
-	}
-
-	var out bytes.Buffer
-	if err := t.Execute(&out, ctx); err != nil {
-		return "", err
-	}
-
-	return out.String(), nil
-}
-
-func requestToLogObjectMarshaller(r *http.Request) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
-		if r != nil {
-			h := zerolog.Dict()
-
-			for k, v := range r.Header {
-				h.Strs(k, v)
-			}
-
-			e.
-				Str("url", r.URL.String()).
-				Str("method", r.Method).
-				Int64("content-length", r.ContentLength).
-				Dict("headers", h)
-		}
-	})
-}
-
-func responseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
-		if resp != nil {
-			h := zerolog.Dict()
-
-			for k, v := range resp.Header {
-				h.Strs(k, v)
-			}
-
-			e.
-				Int64("content-length", resp.ContentLength).
-				Int("status-code", resp.StatusCode).
-				Str("status", resp.Status).
-				Dict("headers", h)
-
-			responseCtx := resp.Request.Context()
-			if start, ok := responseCtx.Value(loghttp.ContextKeyRequestStart).(time.Time); ok {
-				e.Dur("duration", roundtime.Duration(time.Since(start), 2))
-			}
-		}
-	})
-}
-
-func resultToLogObjectMarshaller(result *httpstat.Result) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
-		e.
-			Dur("dns-lookup", result.DNSLookup).
-			Dur("tcp-connection", result.TCPConnection).
-			Dur("tls-handshake", result.TLSHandshake).
-			Dur("server-processing", result.ServerProcessing).
-			Dur("name-lookup", result.NameLookup).
-			Dur("connect", result.Connect).
-			Dur("pretransfer", result.Connect).
-			Dur("start-transfer", result.StartTransfer)
-	})
-}
-
-// loggerFunc turns a function into an a zerolog marshaller.
-type loggerFunc func(e *zerolog.Event)
-
-// MarshalZerologObject makes the LoggerFunc type a LogObjectMarshaler.
-func (f loggerFunc) MarshalZerologObject(e *zerolog.Event) {
-	f(e)
 }
