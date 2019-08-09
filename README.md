@@ -2,6 +2,7 @@
 ========
 
 ![under-construction](https://img.shields.io/badge/%F0%9F%9A%A7-under%20construction-important)
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/ef38ed828c4c494f83e63cb3f65d0e30)](https://app.codacy.com/app/ccamel/kynaptik?utm_source=github.com&utm_medium=referral&utm_content=ccamel/kynaptik&utm_campaign=Badge_Grade_Dashboard)
 [![build-status](https://travis-ci.org/ccamel/kynaptik.svg?branch=master)](https://travis-ci.org/ccamel/kynaptik)
 [![coverage-status](https://coveralls.io/repos/github/ccamel/kynaptik/badge.svg?branch=master&kill_cache=1)](https://coveralls.io/github/ccamel/kynaptik?branch=master)
 [![maintainability](https://api.codeclimate.com/v1/badges/bb38e3df1b0591b4d1ef/maintainability)](https://codeclimate.com/github/ccamel/kynaptik/maintainability)
