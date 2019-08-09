@@ -5,10 +5,10 @@ metadata:
   name: kynaptik-http-configmap
 data:
   function-spec.yml: |
-    condition: |
+    preCondition: |
       data.message != ""
 
-    action:
+    action: |
       uri: 'https://webhook.site/{{ .data.key }}'
       method: POST
       headers:
