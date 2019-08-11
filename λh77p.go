@@ -88,7 +88,7 @@ func (a HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
 	defer func() {
 		result.End(time.Now())
 	}()
-	reqCtx := httpstat.WithHTTPStat(request.Context(), &result)
+	reqCtx := httpstat.WithHTTPStat(ctx, &result)
 	request = request.WithContext(reqCtx)
 
 	client := http.Client{
