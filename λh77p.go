@@ -46,16 +46,14 @@ func HTTPEntryPoint(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a HTTPAction) MarshalZerologObject(e *zerolog.Event) {
-	d := zerolog.Dict()
-
-	for k, v := range a.Headers {
-		d.Str(k, v)
-	}
-
 	e.
 		Str("uri", a.URI).
 		Str("method", a.Method).
-		Dict("headers", d).
+		Object("headers", loggerFunc(func(e *zerolog.Event) {
+			for k, v := range a.Headers {
+				e.Str(k, v)
+			}
+		})).
 		Str("body", a.Body)
 }
 
