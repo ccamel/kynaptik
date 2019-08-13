@@ -1,0 +1,26 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: circleci/golang:1.12.4
+
+    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+
+    steps:
+      - checkout
+      - restore_cache:
+          keys:
+            - v1-pkg-cache
+
+      - run: go get github.com/mattn/goveralls
+      - run: make install-tools
+      - run: make install-deps
+      - run: make lint
+      - run: make build
+      - run: env GO111MODULE=on go test -v -cover -coverprofile=coverage.out
+      - run: env GO111MODULE=on goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
+
+      - save_cache:
+          key: v1-pkg-cache
+          paths:
+            - "/go/pkg"
