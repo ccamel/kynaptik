@@ -8,8 +8,6 @@ import (
 	"io/ioutil"
 	"mime"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 
 	"github.com/antonmedv/expr"
@@ -93,28 +91,7 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 			root := fmt.Sprintf("/%s/%s",
 				"configs", r.Header.Get("X-Fission-Function-Namespace"))
 
-			fsutil := &afero.Afero{Fs: fs}
-
-			var configPath string
-			err := fsutil.Walk(root, func(path string, info os.FileInfo, err error) error {
-				if err != nil {
-					return err
-				}
-
-				if info.IsDir() {
-					return nil
-				}
-
-				if configPath != "" {
-					return filepath.SkipDir
-				}
-
-				if info.Name() == configName {
-					configPath = path
-				}
-
-				return nil
-			})
+			configPath, err := findFilename(fs, root, configName)
 
 			if err != nil {
 				_, _ = jsend.
