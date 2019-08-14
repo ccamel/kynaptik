@@ -3,6 +3,8 @@
 
 GO111MODULE=on
 
+SRC_CORE=$(shell ls | grep '.*\.go' | grep -v 'λ.*\.go' | grep -v '.*_test')
+
 default: build
 
 install-tools:
@@ -22,11 +24,11 @@ test: build
 lint: install-tools
 	golangci-lint run
 
-goconvey: build
+goconvey:
 	goconvey -excludedDirs build,config,doc,dist,specs,vendor
 
-dist: build
-	zip -r dist/kynaptik-http.zip README.md http.go go.mod go.sum
+dist:
+	zip -r dist/kynaptik-http.zip README.md $(SRC_CORE) "λh77p.go" go.mod go.sum
 
 build/%.so:
 	go build -buildmode=plugin -o $@ $<
