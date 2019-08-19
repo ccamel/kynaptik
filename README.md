@@ -96,14 +96,19 @@ By default, the condition consider a status code 2xx to be successful.
 
 ## Evaluation environment
 
-Both the _preCondition_ expression and the _action_ template are processed against an environment.
+The _preCondition_, _postCondition_ expressions and the _action_ template are processed against an environment.
 
-The environment is following:
+The data available in the environment is following:
 
-  - `data`: the incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings).
-  - `config`: the current configuration.
+| name     | description                                                                                                                                                                    | availability             |
+|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
+| data     | The incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings).                                                    | always                   |
+| config   | The current configuration.                                                                                                                                                     | always                   |
+| response | The response returned by the invocation. Datatype depends on the action performed. For _http_, the response is the [HTTP response](https://golang.org/pkg/net/http/#Response). | only for _postCondition_ |
 
-For the _postCondition_, the [response](https://golang.org/pkg/net/http/#Response) is added to the environment. 
+Some useful functions are also injected in the environment covering a large set of operations: string, date, maths, encoding...
+The functions are mainly brought by the [Masterminds/sprig](https://github.com/Masterminds/sprig) project. The complete description of those 
+functions can be found [here](http://masterminds.github.io/sprig/).
 
 [kubernetes]: https://kubernetes.io/
 [fission]: https://fission.io/
