@@ -317,7 +317,7 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 			program := r.Context().Value(ctxKeyPreConditionProgram).(*vm.Program)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
-			out, err := expr.Run(program, env)
+			matched, err := EvaluatePredicateExpression(program, env)
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
@@ -328,36 +328,23 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 				return
 			}
 
-			switch v := out.(type) {
-			case bool:
-				if v {
-					hlog.
-						FromRequest(r).
-						Info().
-						Msg("👌️️ pre-condition matched")
+			if matched {
+				hlog.
+					FromRequest(r).
+					Info().
+					Msg("👌️️ pre-condition matched")
 
-					Ͱ.ServeHTTP(w, r)
-				} else {
-					hlog.
-						FromRequest(r).
-						Info().
-						Msg("⛔️️ pre-condition didn't match")
+				Ͱ.ServeHTTP(w, r)
+			} else {
+				hlog.
+					FromRequest(r).
+					Info().
+					Msg("⛔️️ pre-condition didn't match")
 
-					_, _ = jsend.
-						Wrap(w).
-						Status(http.StatusOK).
-						Message("unsatisfied condition").
-						Data(&ResponseData{"match-pre-condition"}).
-						Send()
-				}
-			default:
 				_, _ = jsend.
 					Wrap(w).
-					Status(http.StatusBadRequest).
-					Message(
-						fmt.Sprintf(
-							"incorrect type %T returned when evaluating condition '%s'. Expected 'boolean'",
-							out, r.Context().Value(ctxKeyConfig).(Config).PreCondition)).
+					Status(http.StatusOK).
+					Message("unsatisfied condition").
 					Data(&ResponseData{"match-pre-condition"}).
 					Send()
 			}
@@ -381,7 +368,7 @@ func buildActionHandler(actionFactory ActionFactory) func(next http.Handler) htt
 					Send()
 			}
 
-			in, err := renderTemplatedString("action", actionSpec, env)
+			in, err := RenderTemplatedString("action", actionSpec, env)
 			if err != nil {
 				sendError(err)
 				return
@@ -425,52 +412,46 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 			program := r.Context().Value(ctxKeyPostConditionProgram).(*vm.Program)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
-			sendError := func(status int, err error) {
+			matched, err := EvaluatePredicateExpression(program, env)
+			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
-					Status(status).
+					Status(http.StatusBadRequest).
 					Message(err.Error()).
 					Data(&ResponseData{"match-post-condition"}).
 					Send()
-			}
-
-			out, err := expr.Run(program, env)
-			if err != nil {
-				sendError(http.StatusBadRequest, err)
 				return
 			}
 
-			switch v := out.(type) {
-			case bool:
-				if v {
-					hlog.
-						FromRequest(r).
-						Info().
-						Str("endpoint", action.GetURI()).
-						Msg("👍 invocation succeeded")
+			if matched {
+				hlog.
+					FromRequest(r).
+					Info().
+					Str("endpoint", action.GetURI()).
+					Msg("👍 invocation succeeded")
 
-					_, _ = jsend.
-						Wrap(w).
-						Status(http.StatusOK).
-						Message("HTTP call succeeded").
-						Data(&ResponseData{"match-post-condition"}).
-						Send()
-				} else {
-					hlog.
-						FromRequest(r).
-						Error().
-						Str("endpoint", action.GetURI()).
-						Str("postCondition", config.PostCondition).
-						Err(fmt.Errorf("condition not satisfied")).
-						Msg("❌ invocation failed")
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusOK).
+					Message("HTTP call succeeded").
+					Data(&ResponseData{"match-post-condition"}).
+					Send()
+			} else {
+				hlog.
+					FromRequest(r).
+					Error().
+					Str("endpoint", action.GetURI()).
+					Str("postCondition", config.PostCondition).
+					Err(fmt.Errorf("condition not satisfied")).
+					Msg("❌ invocation failed")
 
-					sendError(http.StatusBadGateway, fmt.Errorf(
-						"endpoint '%s' call didn't satisfy postCondition: %s", action.GetURI(), config.PostCondition))
-				}
-			default:
-				sendError(http.StatusBadRequest, fmt.Errorf(
-					"incorrect type %T returned when evaluating post-condition '%s'. Expected 'boolean'",
-					out, config.PostCondition))
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusBadGateway).
+					Message(fmt.Sprintf(
+						"endpoint '%s' call didn't satisfy postCondition: %s", action.GetURI(), config.PostCondition)).
+					Data(&ResponseData{"match-post-condition"}).
+					Send()
 			}
 		})
 	}

@@ -426,7 +426,7 @@ action: |
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"incorrect type string returned when evaluating condition 'data.foo\n'. Expected 'boolean'","status":"fail"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"incorrect type string returned when evaluating expression 'data.foo\n'. Expected 'boolean'","status":"fail"}`)
 	}
 
 	return f
@@ -539,7 +539,7 @@ postCondition: |
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil	}
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"incorrect type string returned when evaluating post-condition 'response\n'. Expected 'boolean'","status":"fail"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"incorrect type string returned when evaluating expression 'response\n'. Expected 'boolean'","status":"fail"}`)
 	}
 
 	return f
