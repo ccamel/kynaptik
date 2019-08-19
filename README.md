@@ -28,19 +28,19 @@ The following diagram depicts how the main components interact:
 `Kynaptiꓘ` is a simple, lean function with a deliberately limited set of features. Development is driven by the [KISS](https://en.wikipedia.org/wiki/KISS_principle) principle:
 "do one thing well".
 
-  - Conditional actions: an action is executed only in case a message matches the defined condition. That condition is specified by an [expression](https://github.com/antonmedv/expr) evaluated
-at running time against an environment containing the incoming message.
-  - Extensible configuration of actions with templating: URL, HTTP method, headers and body.
+-   Conditional actions: an action is executed only in case a message matches the defined condition. That condition is specified by an [expression](https://github.com/antonmedv/expr) evaluated
+    at running time against an environment containing the incoming message.
+-   Extensible configuration of actions with templating: URL, HTTP method, headers and body.
 
-__Out of scope:__
+**Out of scope:**
 
-  - No complex conditions, e.g. based on a state based on time ([CEP](https://en.wikipedia.org/wiki/Complex_event_processing))
-  - No content enrichment: no way to access an external data source in order to augment a message with missing information.
+-   No complex conditions, e.g. based on a state based on time ([CEP](https://en.wikipedia.org/wiki/Complex_event_processing))
+-   No content enrichment: no way to access an external data source in order to augment a message with missing information.
 
 The incoming messages are expected to be qualified enough for the processing.
 
-  - Fire and forget behavior: the action (e.g. HTTP post) is done once, the result is not used (a log is emitted though)
-  - No recovery policy: no retry if the action fails
+-   Fire and forget behavior: the action (e.g. HTTP post) is done once, the result is not used (a log is emitted though)
+-   No recovery policy: no retry if the action fails
 
 ## Configuration
 
@@ -79,17 +79,17 @@ data:
 
 The yaml configuration has the following structure:
 
-  - `preCondition`: optional, specifies the condition (textual) to be satisfied for the function to be triggered. The condition is an expression 
-  (text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine. `true` by default.
-  - `action`: specifies the action to perform. The action specification is _templated_ using the [go template engine](https://golang.org/pkg/text/template/).
-  See section below to have details about the evaluation environment.
-    - `uri`: mandatory, the URI of the endpoint to invoke. Shall resolve to a URI according to [rfc3986](https://www.ietf.org/rfc/rfc3986.txt).
-    Protocol shall be either `http` or `https`.
-    - `method`: mandatory, the HTTP method: `GET`, `OPTIONS`, `GET`, `HEAD`, `POST`, `PUT`, `DELETE`, `TRACE`, `CONNECT` (according to [rfc2616](https://www.ietf.org/rfc/rfc2616.txt)).
-    - `headers`: the HTTP headers as a map key/value.
-    - `body`: the content of the body (textual).
-    - `timeout`: optional, specifies the timeout for waiting for data (in ms).
-  - `postCondition`: optional, specifies the condition (textual) to be satisfied for the response of the call be considered successful.
+-   `preCondition`: optional, specifies the condition (textual) to be satisfied for the function to be triggered. The condition is an expression 
+    (text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine. `true` by default.
+-   `action`: specifies the action to perform. The action specification is _templated_ using the [go template engine](https://golang.org/pkg/text/template/).
+    See section below to have details about the evaluation environment.
+    -   `uri`: mandatory, the URI of the endpoint to invoke. Shall resolve to a URI according to [rfc3986](https://www.ietf.org/rfc/rfc3986.txt).
+        Protocol shall be either `http` or `https`.
+    -   `method`: mandatory, the HTTP method: `GET`, `OPTIONS`, `GET`, `HEAD`, `POST`, `PUT`, `DELETE`, `TRACE`, `CONNECT` (according to [rfc2616](https://www.ietf.org/rfc/rfc2616.txt)).
+    -   `headers`: the HTTP headers as a map key/value.
+    -   `body`: the content of the body (textual).
+    -   `timeout`: optional, specifies the timeout for waiting for data (in ms).
+-   `postCondition`: optional, specifies the condition (textual) to be satisfied for the response of the call be considered successful.
 
 The condition is an expression (text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine.
 By default, the condition consider a status code 2xx to be successful.
@@ -101,7 +101,7 @@ The _preCondition_, _postCondition_ expressions and the _action_ template are pr
 The data available in the environment is following:
 
 | name     | description                                                                                                                                                                    | availability             |
-|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|--------------------------|
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
 | data     | The incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings).                                                    | always                   |
 | config   | The current configuration.                                                                                                                                                     | always                   |
 | response | The response returned by the invocation. Datatype depends on the action performed. For _http_, the response is the [HTTP response](https://golang.org/pkg/net/http/#Response). | only for _postCondition_ |
@@ -111,5 +111,5 @@ The functions are mainly brought by the [Masterminds/sprig](https://github.com/M
 functions can be found [here](http://masterminds.github.io/sprig/).
 
 [kubernetes]: https://kubernetes.io/
-[fission]: https://fission.io/
 
+[fission]: https://fission.io/
