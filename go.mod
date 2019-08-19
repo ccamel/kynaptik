@@ -3,9 +3,15 @@ module github.com/ccamel/kynaptik
 go 1.12
 
 require (
+	github.com/Masterminds/goutils v1.1.0 // indirect
+	github.com/Masterminds/semver v1.4.2 // indirect
+	github.com/Masterminds/sprig v2.20.0+incompatible
 	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
+	github.com/google/uuid v1.1.1 // indirect
+	github.com/huandu/xstrings v1.2.0 // indirect
+	github.com/imdario/mergo v0.3.7 // indirect
 	github.com/justinas/alice v0.0.0-20171023064455-03f45bd4b7da
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
 	github.com/motemen/go-nuts v0.0.0-20190725124253-1d2432db96b0
