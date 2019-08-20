@@ -12,6 +12,10 @@ install-tools:
 		echo "installing golangci-lint..."; \
 		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.17.1; \
 	fi
+	@if [ ! -f $(GOPATH)/bin/goconvey ]; then \
+		echo "installing goconvey..."; \
+		go get github.com/smartystreets/goconvey; \
+	fi
 
 install-deps:
 	go get .
@@ -22,10 +26,10 @@ test: build
 	go test -v -covermode=count -coverprofile c.out .
 
 lint: install-tools
-	golangci-lint run
+	$(GOPATH)/bin/golangci-lint run
 
-goconvey:
-	goconvey -excludedDirs build,config,doc,dist,specs,vendor
+goconvey: install-tools
+	$(GOPATH)/bin/goconvey -excludedDirs build,config,doc,dist,specs,vendor
 
 dist:
 	zip -r dist/kynaptik-http.zip README.md $(SRC_CORE) "λh77p.go" go.mod go.sum
