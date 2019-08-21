@@ -90,6 +90,7 @@ The yaml configuration has the following structure:
     -   `body`: the content of the body (textual).
     -   `timeout`: optional, specifies the timeout for waiting for data (in ms).
 -   `postCondition`: optional, specifies the condition (textual) to be satisfied for the response of the call be considered successful.
+-   `maxBodySize`: optional, defines the maximum acceptable size (in bytes) of the incoming request body. No limit by default.
 
 The condition is an expression (text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine.
 By default, the condition consider a status code 2xx to be successful.
