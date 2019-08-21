@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-
 	"fmt"
 	"io/ioutil"
 	"mime"
@@ -56,6 +55,7 @@ func invokeλ(
 			hlog.RequestIDHandler("req-id", "Request-Id"),
 			logIncomingRequestHandler(),
 			loadConfigurationHandler(fs, configFactory),
+			checkContentLengthHandler(),
 			checkContentTypeHandler(),
 			parsePreConditionHandler(),
 			parsePostConditionHandler(),
@@ -163,6 +163,27 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 	}
 }
 
+func checkContentLengthHandler() func(next http.Handler) http.Handler {
+	return func(Ͱ http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			maxBodySize := r.Context().Value(ctxKeyConfig).(Config).MaxBodySize
+
+			if maxBodySize > 0 && r.ContentLength > maxBodySize {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusExpectationFailed).
+					Message(fmt.Sprintf("request too large. Maximum bytes allowed: %d", maxBodySize)).
+					Data(&ResponseData{"check-content-length"}).
+					Send()
+
+				return
+			}
+
+			Ͱ.ServeHTTP(w, r)
+		})
+	}
+}
+
 func checkContentTypeHandler() func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -257,14 +278,31 @@ func parsePostConditionHandler() func(next http.Handler) http.Handler {
 func parsePayloadHandler() func(next http.Handler) http.Handler {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			payload, err := ioutil.ReadAll(r.Body)
+			maxBodySize := r.Context().Value(ctxKeyConfig).(Config).MaxBodySize
+			reader := r.Body
+
+			if maxBodySize > 0 {
+				reader = http.MaxBytesReader(w, r.Body, maxBodySize)
+			}
+
+			payload, err := ioutil.ReadAll(reader)
 			if err != nil {
-				_, _ = jsend.
-					Wrap(w).
-					Status(http.StatusBadRequest).
-					Message(err.Error()).
-					Data(&ResponseData{"parse-payload"}).
-					Send()
+				switch {
+				case err.Error() == "http: request body too large": // TODO: fragile - how to improve?
+					_, _ = jsend.
+						Wrap(w).
+						Status(http.StatusRequestEntityTooLarge).
+						Message(fmt.Sprintf("request too large. Maximum bytes allowed: %d", maxBodySize)).
+						Data(&ResponseData{"parse-payload"}).
+						Send()
+				default:
+					_, _ = jsend.
+						Wrap(w).
+						Status(http.StatusBadRequest).
+						Message(err.Error()).
+						Data(&ResponseData{"parse-payload"}).
+						Send()
+				}
 				return
 			}
 
