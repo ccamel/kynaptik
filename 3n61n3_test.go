@@ -314,6 +314,35 @@ maxBodySize: 990
 	return f
 }
 
+func tooBigContentIncomingRequestFixture() engineFixture {
+	req, err := http.NewRequest("GET", "/",  strings.NewReader(strings.Repeat("!", 100)))
+	So(err, ShouldBeNil)
+
+	req.ContentLength = -1 // force unknown length
+
+	f := engineFixture{}
+
+	f.appFS = afero.NewMemMapFs()
+	f.fnReq = req
+	f.config = `
+preCondition: |
+ true == true
+
+action: |
+  uri: 'null://'
+  param1: 'foo'
+maxBodySize: 99
+`
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders("application/json"), arrangeConfig)
+	f.act = actDefault
+	f.assert = func(rr *httptest.ResponseRecorder) {
+		So(rr.Code, ShouldEqual, http.StatusRequestEntityTooLarge)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-payload"},"message":"request too large. Maximum bytes allowed: 99","status":"fail"}`)
+	}
+
+	return f
+}
+
 func unsupportedMediaTypeIncomingRequestFixture() engineFixture {
 	req, err := http.NewRequest("GET", "/",  nil)
 	So(err, ShouldBeNil)
@@ -755,6 +784,7 @@ func TestEngine(t *testing.T) {
 			invalidActionFixture,
 			incorrectActionFixture,
 			tooBigContentLengthIncomingRequestFixture,
+			tooBigContentIncomingRequestFixture,
 			unsupportedMediaTypeIncomingRequestFixture,
 			unparsableMediaTypeIncomingRequestFixture,
 			invalidJSONRequestFixture,
