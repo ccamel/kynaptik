@@ -84,10 +84,77 @@ func graphqlSuccessfulPostWithNoVariablesFixture() graphqlFixture {
 	}
 }
 
+func graphqlSuccessfulPostWithHeadersAndVariablesInvocationFixture() graphqlFixture {
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return graphqlFixture{
+		ctx: context.Background(),
+		graphqlAction: GraphQLAction{
+			ActionCore: ActionCore{
+				URI: fmt.Sprintf("graphql://127.0.0.1:%d/graphql", port),
+			},
+			Headers: map[string]string{
+				"X-Userid": "Rmlyc3Qgb3B0aW9u=",
+			},
+			Query: "query foo($x: String) { bar }",
+			Variables: map[string]interface{}{
+				"a": map[string]interface{}{
+					"v": 0,
+				},
+				"b": map[string]interface{}{
+					"v": 1,
+				},
+			},
+			OperationName: "foo",
+		},
+		arrange: func(c C, ctx context.Context) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					c.So(r.URL.String(), ShouldEqual, "/graphql")
+					c.So(r.Method, ShouldEqual, "POST")
+					c.So(r.Header, ShouldContainKey, "Content-Type")
+					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
+					c.So(r.Header.Get("X-Userid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
+
+					payload, err := ioutil.ReadAll(r.Body)
+					c.So(err, ShouldBeNil)
+
+					c.So(string(payload), ShouldEqual, `{"query":"query foo($x: String) { bar }","variables":{"a":{"v":0},"b":{"v":1}},"operationName":"foo"}`)
+
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					_, _ = io.WriteString(w, "ok")
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(res interface{}, err error) {
+			So(err, ShouldBeNil)
+			So(res, ShouldHaveSameTypeAs, &http.Response{})
+
+			So(res.(*http.Response).StatusCode, ShouldEqual, http.StatusOK)
+
+			body, err := ioutil.ReadAll(res.(*http.Response).Body)
+			So(err, ShouldBeNil)
+			So(string(body), ShouldEqual, `ok`)
+		},
+	}
+}
+
 func TestGraphqlFunction(t *testing.T) {
 	Convey("Considering the GraphQL function", t, func(c C) {
 		fixtures := []graphqlFixtureSupplier{
 			graphqlSuccessfulPostWithNoVariablesFixture,
+			graphqlSuccessfulPostWithHeadersAndVariablesInvocationFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
