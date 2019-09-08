@@ -20,7 +20,8 @@ install-tools:
 install-deps:
 	go get .
 
-build: build/http.so
+build:
+	go build -buildmode=plugin -o build/kynaptik.so
 
 test: build
 	go test -v -covermode=count -coverprofile c.out .
@@ -33,6 +34,4 @@ goconvey: install-tools
 
 dist:
 	zip -r dist/kynaptik-http.zip README.md $(SRC_CORE) "λh77p.go" go.mod go.sum
-
-build/%.so:
-	go build -buildmode=plugin -o $@ $<
+	zip -r dist/kynaptik-graphql.zip README.md $(SRC_CORE) "λ6r4phql.go" go.mod go.sum
