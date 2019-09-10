@@ -26,6 +26,8 @@ linters-settings:
       - style
       - experimental
       - opinionated
+  funlen:
+    lines: 76
 linters:
   enable-all: true
   disable:
