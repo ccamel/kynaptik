@@ -30,7 +30,7 @@ type httpFixture struct {
 	assert func(interface{}, error)
 }
 
-func successfulPostWithHeadersInvocationFixture() httpFixture {
+func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
 
@@ -89,7 +89,7 @@ func successfulPostWithHeadersInvocationFixture() httpFixture {
 	}
 }
 
-func timeoutInvocationFixture() httpFixture {
+func httpTimeoutInvocationFixture() httpFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
 
@@ -138,8 +138,8 @@ func timeoutInvocationFixture() httpFixture {
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []httpFixtureSupplier{
-			successfulPostWithHeadersInvocationFixture,
-			timeoutInvocationFixture,
+			httpSuccessfulPostWithHeadersInvocationFixture,
+			httpTimeoutInvocationFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
@@ -177,7 +177,7 @@ func TestHttpActionFactory(t *testing.T) {
 	})
 }
 
-func TestValidateAction(t *testing.T) {
+func TestHttpValidateAction(t *testing.T) {
 
 	Convey("Validate() shall validate correctly the HTTPAction", t, func(c C) {
 		cases := []struct {
