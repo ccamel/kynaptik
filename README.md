@@ -50,6 +50,8 @@ The incoming messages are expected to be qualified enough for the processing.
 
 The `ConfigMap` _shall_ declares a key in `data` which contain the `yaml` configuration of the function.
 
+For instance:
+
 ```yaml
 apiVersion: v1
 kind: ConfigMap
@@ -84,16 +86,15 @@ The yaml configuration has the following structure:
 -   `action`: specifies the action to perform. The action specification is _templated_ using the [go template engine](https://golang.org/pkg/text/template/).
     See section below to have details about the evaluation environment.
     -   `uri`: mandatory, the URI of the endpoint to invoke. Shall resolve to a URI according to [rfc3986](https://www.ietf.org/rfc/rfc3986.txt).
-        Protocol shall be either `http` or `https`.
-    -   `method`: mandatory, the HTTP method: `GET`, `OPTIONS`, `GET`, `HEAD`, `POST`, `PUT`, `DELETE`, `TRACE`, `CONNECT` (according to [rfc2616](https://www.ietf.org/rfc/rfc2616.txt)).
-    -   `headers`: the HTTP headers as a map key/value.
-    -   `body`: the content of the body (textual).
+        The scheme specifies the kind of action (see below) that will be performed: http, graphql...
     -   `timeout`: optional, specifies the timeout for waiting for data (in ms).
+    -   `...`: other fields depending on the kind of action.
+
 -   `postCondition`: optional, specifies the condition (textual) to be satisfied for the response of the call be considered successful.
 -   `maxBodySize`: optional, defines the maximum acceptable size (in bytes) of the incoming request body. No limit by default.
 
-The condition is an expression (text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine.
-By default, the condition consider a status code 2xx to be successful.
+The condition (either `preCondition` or `postCondition`) is an expression (text) compliant with the syntax of 
+[antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine.
 
 ## Evaluation environment
 
@@ -101,16 +102,139 @@ The _preCondition_, _postCondition_ expressions and the _action_ template are pr
 
 The data available in the environment is following:
 
-| name     | description                                                                                                                                                                    | availability             |
-| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
-| data     | The incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings).                                                    | always                   |
-| config   | The current configuration.                                                                                                                                                     | always                   |
-| response | The response returned by the invocation. Datatype depends on the action performed. For _http_, the response is the [HTTP response](https://golang.org/pkg/net/http/#Response). | only for _postCondition_ |
+| name       | description                                                                                                                 | availability             |
+| ---------- | ----------------------------------------------------------------------------------------------------------------------------| ------------------------ |
+| `data`     | The incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings). | always                   |
+| `config`   | The current configuration.                                                                                                  | always                   |
+| `response` | The response returned by the invocation. Datatype depends on the action performed.                                          | only for _postCondition_ |
 
 Some useful functions are also injected in the environment covering a large set of operations: string, date, maths, encoding...
 The functions are mainly brought by the [Masterminds/sprig](https://github.com/Masterminds/sprig) project. The complete description of those 
 functions can be found [here](http://masterminds.github.io/sprig/).
 
+## actions
+
+### http(s)://
+
+Provides HTTP actions for calling external HTTP(S) resources.
+
+**URI:**
+
+`http[s]://hostname[:port][/resourceUri][?options]`
+
+**Configuration:**
+
+The `action` yaml element supports the following additional elements: 
+
+-   `method`: mandatory, the HTTP method: `GET`, `OPTIONS`, `GET`, `HEAD`, `POST`, `PUT`, `DELETE`, `TRACE`, `CONNECT` (according to [rfc2616](https://www.ietf.org/rfc/rfc2616.txt)).
+-   `headers`: the HTTP headers as a map key/value.
+-   `body`: the content of the body (textual).
+
+**Evaluation environment:**
+
+The environment variable `response` is the [HTTP response](https://golang.org/pkg/net/http/#Response). 
+
+**Example:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: default
+  name: kynaptik-http-configmap
+data:
+  function-spec.yml: |
+    preCondition: |
+      data.message != ""
+
+    action: |
+      uri: 'https://webhook.site/{{ .data.key }}'
+      method: POST
+      headers:
+        Content-Type: application/json
+
+      body: |
+        {
+          message: {{ .data.message }}
+        }
+```
+
+### graphql(s)://
+
+Provides [GraphQL][graphql] actions for calling external [GraphQL][graphql] APIs.
+
+The query is sent following the [HTTP protocol](https://graphql.org/learn/serving-over-http/):
+
+-   using HTTP method `POST`
+-   using the `application/json` content type
+-   including a JSON-encoded body of the following form:
+```json
+{
+  "query": "...",
+  "operationName": "...",
+  "variables": { "myVariable": "someValue", ... }
+}
+```
+
+**URI:**
+
+`graphql[s]://hostname[:port][/graphQLEndpoint]`
+
+Where the supported protocols are :   
+-   `graphql`: relative to an `http` request
+-   `graphqls` : relative to an `https` request
+
+**Configuration:**
+
+The `action` yaml element supports the following additional elements: 
+
+-   `query`: mandatory, [GraphQL query](https://graphql.org/learn/queries/) to send.
+-   `variables`: optional, the [GraphQL variables](https://graphql.org/learn/queries/#variables) to use.
+-   `operationName`: optional, the name of the operation - only required if multiple operations are present in the query.
+
+**Evaluation environment:**
+
+The environment variable `response` is the [HTTP response](https://golang.org/pkg/net/http/#Response).
+
+**Example:**
+
+```yaml
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: default
+  name: kynaptik-graphql-configmap
+data:
+  function-spec: |
+    preCondition: |
+      data.name != ""
+
+    action: |
+      uri: 'graphqls://graphql-pokemon.now.sh/?'      
+      timeout: 10000            
+      query: |
+        query ViewPokemon($name: String) {
+          pokemon(name: $name) {
+            id
+            number
+            name
+            attacks {
+              special {
+                name
+                type
+                damage
+              }
+            }
+          }
+        }
+    variables:        
+        name: '{{ .data.name }}'        
+    postCondition: |
+      response.StatusCode == 200
+```
+
 [kubernetes]: https://kubernetes.io/
 
 [fission]: https://fission.io/
+
+[graphql]: https://graphql.org/
