@@ -22,7 +22,6 @@ func FuncMaps() map[string]interface{} {
 	return map[string]interface{}{
 		"urlPathEscape":  url.PathEscape,
 		"urlQueryEscape": url.QueryEscape,
-		"urlParse":       url.Parse,
 	}
 }
 
