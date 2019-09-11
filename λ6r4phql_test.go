@@ -242,3 +242,22 @@ func TestGraphqlValidateAction(t *testing.T) {
 		}
 	})
 }
+
+func TestGraphQLEntryPoint(t *testing.T) {
+	Convey("When calling 'GraphQLEntryPoint' function", t, func(c C) {
+		Convey("Then it shall panic (this is expected)", func() {
+			So(func() {
+				GraphqlEntryPoint(nil, nil)
+			}, ShouldPanic)
+		})
+	})
+}
+
+func TestGraphQLConfigFactory(t *testing.T) {
+	Convey("When calling 'GraphQLConfigFactory' function", t, func(c C) {
+		factory := GraphQLConfigFactory()
+		Convey("Then configuration provided shall be the expected one", func() {
+			So(factory.PreCondition, ShouldEqual, "true")
+		})
+	})
+}
