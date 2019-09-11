@@ -227,3 +227,22 @@ func TestHttpValidateAction(t *testing.T) {
 		}
 	})
 }
+
+func TestHTTPEntryPoint(t *testing.T) {
+	Convey("When calling 'GraphQLEntryPoint' function", t, func(c C) {
+		Convey("Then it shall panic (this is expected)", func() {
+			So(func() {
+				HTTPEntryPoint(nil, nil)
+			}, ShouldPanic)
+		})
+	})
+}
+
+func TestHTTPConfigFactory(t *testing.T) {
+	Convey("When calling 'HTTPConfigFactory' function", t, func(c C) {
+		factory := HTTPConfigFactory()
+		Convey("Then configuration provided shall be the expected one", func() {
+			So(factory.PreCondition, ShouldEqual, "true")
+		})
+	})
+}
