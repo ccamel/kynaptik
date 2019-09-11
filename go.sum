@@ -5,6 +5,8 @@ github.com/Masterminds/semver v1.4.2 h1:WBLTQ37jOCzSLtXNdoo8bNM8876KhNqOKvrlGITg
 github.com/Masterminds/semver v1.4.2/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
 github.com/Masterminds/sprig v2.20.0+incompatible h1:dJTKKuUkYW3RMFdQFXPU/s6hg10RgctmTjRcbZ98Ap8=
 github.com/Masterminds/sprig v2.20.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
+github.com/Masterminds/sprig v2.20.1-0.20190910161210-385f7602702f+incompatible h1:MzKxwElsnev2rK8IXYsSJhPM7LG5Oebw6mRz8gJ33sE=
+github.com/Masterminds/sprig v2.20.1-0.20190910161210-385f7602702f+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
 github.com/antlr/antlr4 v0.0.0-20190518164840-edae2a1c9b4b h1:IyTcB1l64U991qSZ0ufqiJv9GVEOUBiSPwsObDm7+cc=
 github.com/antlr/antlr4 v0.0.0-20190518164840-edae2a1c9b4b/go.mod h1:T7PbCXFs94rrTttyxjbyT5+/1V8T2TYDejxUfHJjw1Y=
 github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b h1:XgIZzLpr4REAGQmPGaO/Cxd6/WGkkowidIIeZnxJERs=

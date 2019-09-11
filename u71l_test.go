@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/antonmedv/expr"
 	"io/ioutil"
 	"testing"
+
+	"github.com/antonmedv/expr"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
@@ -49,7 +50,7 @@ func TestRenderTemplatedString(t *testing.T) {
 			},
 			{
 				name:     "url-parse",
-				template: "{{ (urlParse .url).Host }}",
+				template: "{{ (urlParse .url).host }}",
 				ctx: map[string]interface{}{
 					"url": "http://localhost:1234/foo/bar?name=john",
 				},
@@ -131,7 +132,7 @@ func TestEvaluatePredicateExpression(t *testing.T) {
 				expectedError:  nil,
 			},
 			{
-				predicate: "urlParse(url).Host == 'localhost:1234'",
+				predicate: "urlParse(url).host == 'localhost:1234'",
 				ctx: map[string]interface{}{
 					"url": "http://localhost:1234/foo/bar?name=john",
 				},
