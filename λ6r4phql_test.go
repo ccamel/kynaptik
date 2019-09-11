@@ -18,11 +18,11 @@ import (
 	. "github.com/smartystreets/goconvey/convey"
 )
 
-type httpFixtureSupplier func() httpFixture
+type graphqlFixtureSupplier func() graphqlFixture
 
-type httpFixture struct {
-	ctx context.Context
-	httpAction HTTPAction
+type graphqlFixture struct {
+	ctx           context.Context
+	graphqlAction GraphQLAction
 	// arrange is a function which initializes the fixture and in returns provides a function which finalizes (clean)
 	// that fixture when called
 	arrange func(c C, ctx context.Context) func()
@@ -30,22 +30,18 @@ type httpFixture struct {
 	assert func(interface{}, error)
 }
 
-func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
+func graphqlSuccessfulPostWithNoVariablesFixture() graphqlFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
 
-	return httpFixture{
+	return graphqlFixture{
 		ctx: context.Background(),
-		httpAction: HTTPAction{
+		graphqlAction: GraphQLAction{
 			ActionCore: ActionCore{
-				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
+				URI: fmt.Sprintf("graphql://127.0.0.1:%d/graphql", port),
 			},
-			Method: "POST",
-			Headers: map[string]string{
-				"Content-Type": "text/plain",
-				"X-Userid":     "Rmlyc3Qgb3B0aW9u=",
-			},
-			Body: "Hello John Doe!",
+			Headers: map[string]string{},
+			Query:   "{foo}",
 		},
 		arrange: func(c C, ctx context.Context) func() {
 			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -53,16 +49,15 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 
 			go func() {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					c.So(r.URL.String(), ShouldEqual, "/")
+					c.So(r.URL.String(), ShouldEqual, "/graphql")
 					c.So(r.Method, ShouldEqual, "POST")
 					c.So(r.Header, ShouldContainKey, "Content-Type")
-					c.So(r.Header.Get("Content-Type"), ShouldEqual, "text/plain")
-					c.So(r.Header.Get("X-Userid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
+					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
 
 					payload, err := ioutil.ReadAll(r.Body)
 					c.So(err, ShouldBeNil)
 
-					c.So(string(payload), ShouldEqual, "Hello John Doe!")
+					c.So(string(payload), ShouldEqual, `{"query":"{foo}","variables":null,"operationName":null}`)
 
 					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
 					_, _ = io.WriteString(w, "ok")
@@ -89,20 +84,29 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 	}
 }
 
-func httpTimeoutInvocationFixture() httpFixture {
+func graphqlSuccessfulPostWithHeadersAndVariablesInvocationFixture() graphqlFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 200 * time.Millisecond)
-
-	return httpFixture{
-		ctx: ctx,
-		httpAction: HTTPAction{
+	return graphqlFixture{
+		ctx: context.Background(),
+		graphqlAction: GraphQLAction{
 			ActionCore: ActionCore{
-				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
+				URI: fmt.Sprintf("graphql://127.0.0.1:%d/graphql", port),
 			},
-			Method: "GET",
-			Headers: map[string]string{},
+			Headers: map[string]string{
+				"X-Userid": "Rmlyc3Qgb3B0aW9u=",
+			},
+			Query: "query foo($x: String) { bar }",
+			Variables: map[string]interface{}{
+				"a": map[string]interface{}{
+					"v": 0,
+				},
+				"b": map[string]interface{}{
+					"v": 1,
+				},
+			},
+			OperationName: "foo",
 		},
 		arrange: func(c C, ctx context.Context) func() {
 			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
@@ -110,36 +114,47 @@ func httpTimeoutInvocationFixture() httpFixture {
 
 			go func() {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					select {
-						case <-ctx.Done():
-							// ok
-						case <-time.After(5 * time.Second):
-							c.So("Should not be here", ShouldBeNil)
-					}
+					c.So(r.URL.String(), ShouldEqual, "/graphql")
+					c.So(r.Method, ShouldEqual, "POST")
+					c.So(r.Header, ShouldContainKey, "Content-Type")
+					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
+					c.So(r.Header.Get("X-Userid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
+
+					payload, err := ioutil.ReadAll(r.Body)
+					c.So(err, ShouldBeNil)
+
+					c.So(string(payload), ShouldEqual, `{"query":"query foo($x: String) { bar }","variables":{"a":{"v":0},"b":{"v":1}},"operationName":"foo"}`)
+
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					_, _ = io.WriteString(w, "ok")
 				}))
 				if err != nil {
 					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
 				}
 			}()
 			return func() {
-				err = listener.Close()
+				err := listener.Close()
 				So(err, ShouldBeNil)
-
-				cancel()
 			}
 		},
 		assert: func(res interface{}, err error) {
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, fmt.Sprintf("Get http://127.0.0.1:%d: context deadline exceeded", port))
+			So(err, ShouldBeNil)
+			So(res, ShouldHaveSameTypeAs, &http.Response{})
+
+			So(res.(*http.Response).StatusCode, ShouldEqual, http.StatusOK)
+
+			body, err := ioutil.ReadAll(res.(*http.Response).Body)
+			So(err, ShouldBeNil)
+			So(string(body), ShouldEqual, `ok`)
 		},
 	}
 }
 
-func TestHttpFunction(t *testing.T) {
-	Convey("Considering the Http function", t, func(c C) {
-		fixtures := []httpFixtureSupplier{
-			httpSuccessfulPostWithHeadersInvocationFixture,
-			httpTimeoutInvocationFixture,
+func TestGraphqlFunction(t *testing.T) {
+	Convey("Considering the GraphQL function", t, func(c C) {
+		fixtures := []graphqlFixtureSupplier{
+			graphqlSuccessfulPostWithNoVariablesFixture,
+			graphqlSuccessfulPostWithHeadersAndVariablesInvocationFixture,
 		}
 
 		for _, fixtureSupplier := range fixtures {
@@ -152,7 +167,7 @@ func TestHttpFunction(t *testing.T) {
 				defer teardown()
 
 				Convey("When calling the function", func() {
-					res, err := fixture.httpAction.DoAction(ctx)
+					res, err := fixture.graphqlAction.DoAction(ctx)
 
 					Convey("Then post-conditions shall be satisfied", func() {
 						fixture.assert(res, err)
@@ -163,54 +178,54 @@ func TestHttpFunction(t *testing.T) {
 	})
 }
 
-func TestHttpActionFactory(t *testing.T) {
-	Convey("When calling HttpActionFactory", t, func(c C) {
-		action := HTTPActionFactory()
+func TestGraphqlActionFactory(t *testing.T) {
+	Convey("When calling GraphQLActionFactory", t, func(c C) {
+		action := GraphQLActionFactory()
 
-		Convey(fmt.Sprintf("Then action created is an HTTPAction with default values"), func() {
+		Convey(fmt.Sprintf("Then action created is an GraphQLAction with default values"), func() {
 
-			So(action, ShouldHaveSameTypeAs, &HTTPAction{})
-			So(action.(*HTTPAction).URI, ShouldEqual, "")
-			So(action.(*HTTPAction).Headers, ShouldResemble, map[string]string{})
-			So(action.(*HTTPAction).Body, ShouldEqual, "")
+			So(action, ShouldHaveSameTypeAs, &GraphQLAction{})
+			So(action.(*GraphQLAction).URI, ShouldEqual, "")
+			So(action.(*GraphQLAction).Headers, ShouldResemble, map[string]string{})
+			So(action.(*GraphQLAction).Variables, ShouldResemble, map[string]interface{}{})
 		})
 	})
 }
 
-func TestHttpValidateAction(t *testing.T) {
+func TestGraphqlValidateAction(t *testing.T) {
 
-	Convey("Validate() shall validate correctly the HTTPAction", t, func(c C) {
+	Convey("Validate() shall validate correctly the GraphQLAction", t, func(c C) {
 		cases := []struct {
 			description   string
-			action        HTTPAction
+			action        GraphQLAction
 			expectedError string
 		}{
 			{
 				"empty action",
-				HTTPAction{},
+				GraphQLAction{},
 				"ActionCore.URI: zero value",
 			},
 			{
 				"invalid URL",
-				HTTPAction{
+				GraphQLAction{
 					ActionCore: ActionCore{URI: "%12334%"},
-					Method: "GET",
+					Query: "{foo}",
 				},
 				`parse %12334%: invalid URL escape "%"`,
 			},
 			{
 				"invalid scheme",
-				HTTPAction{
+				GraphQLAction{
 					ActionCore: ActionCore{URI: "ftp://nowhere?p=foo"},
-					Method: "GET",
+					Query: "{foo}",
 				},
-				`unsupported scheme ftp. Only http(s) supported`,
+				`unsupported scheme ftp. Only graphql(s) supported`,
 			},
 			{
 				"valid",
-				HTTPAction{
-					ActionCore: ActionCore{URI: "http://nowhere/"},
-					Method: "GET",
+				GraphQLAction{
+					ActionCore: ActionCore{URI: "graphqls://nowhere/"},
+					Query: "{foo}",
 				},
 				"",
 			},
@@ -228,19 +243,19 @@ func TestHttpValidateAction(t *testing.T) {
 	})
 }
 
-func TestHTTPEntryPoint(t *testing.T) {
+func TestGraphQLEntryPoint(t *testing.T) {
 	Convey("When calling 'GraphQLEntryPoint' function", t, func(c C) {
 		Convey("Then it shall panic (this is expected)", func() {
 			So(func() {
-				HTTPEntryPoint(nil, nil)
+				GraphqlEntryPoint(nil, nil)
 			}, ShouldPanic)
 		})
 	})
 }
 
-func TestHTTPConfigFactory(t *testing.T) {
-	Convey("When calling 'HTTPConfigFactory' function", t, func(c C) {
-		factory := HTTPConfigFactory()
+func TestGraphQLConfigFactory(t *testing.T) {
+	Convey("When calling 'GraphQLConfigFactory' function", t, func(c C) {
+		factory := GraphQLConfigFactory()
 		Convey("Then configuration provided shall be the expected one", func() {
 			So(factory.PreCondition, ShouldEqual, "true")
 		})
