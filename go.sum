@@ -3,8 +3,8 @@ github.com/Masterminds/goutils v1.1.0 h1:zukEsf/1JZwCMgHiK3GZftabmxiCw4apj3a28RP
 github.com/Masterminds/goutils v1.1.0/go.mod h1:8cTjp+g8YejhMuvIA5y2vz3BpJxksy863GQaJW2MFNU=
 github.com/Masterminds/semver v1.5.0 h1:H65muMkzWKEuNDnfl9d70GUjFniHKHRbFPGBuZ3QEww=
 github.com/Masterminds/semver v1.5.0/go.mod h1:MB6lktGJrhw8PrUyiEoblNEGEQ+RzHPF078ddwwvV3Y=
-github.com/Masterminds/sprig v2.20.1-0.20190910161210-385f7602702f+incompatible h1:MzKxwElsnev2rK8IXYsSJhPM7LG5Oebw6mRz8gJ33sE=
-github.com/Masterminds/sprig v2.20.1-0.20190910161210-385f7602702f+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
+github.com/Masterminds/sprig v2.21.0+incompatible h1:nPETddHHEG1ucL7H5t5T95IuWaDe5qB9ImEaztiXgRc=
+github.com/Masterminds/sprig v2.21.0+incompatible/go.mod h1:y6hNFY5UBTIWBxnzTeuNhlNS5hqE0NB0E6fgfo2Br3o=
 github.com/antlr/antlr4 v0.0.0-20190518164840-edae2a1c9b4b h1:IyTcB1l64U991qSZ0ufqiJv9GVEOUBiSPwsObDm7+cc=
 github.com/antlr/antlr4 v0.0.0-20190518164840-edae2a1c9b4b/go.mod h1:T7PbCXFs94rrTttyxjbyT5+/1V8T2TYDejxUfHJjw1Y=
 github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b h1:XgIZzLpr4REAGQmPGaO/Cxd6/WGkkowidIIeZnxJERs=
