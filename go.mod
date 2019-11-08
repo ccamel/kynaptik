@@ -12,7 +12,7 @@ require (
 	github.com/google/uuid v1.1.1 // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
-	github.com/justinas/alice v0.0.0-20171023064455-03f45bd4b7da
+	github.com/justinas/alice v1.2.0
 	github.com/mitchellh/copystructure v1.0.0 // indirect
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
 	github.com/motemen/go-nuts v0.0.0-20190725124253-1d2432db96b0
