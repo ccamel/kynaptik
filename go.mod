@@ -17,5 +17,5 @@ require (
 	github.com/spf13/afero v1.2.2
 	github.com/tcnksm/go-httpstat v0.2.0
 	gopkg.in/validator.v2 v2.0.0-20180514200540-135c24b11c19
-	gopkg.in/yaml.v2 v2.2.6
+	gopkg.in/yaml.v2 v2.2.7
 )
