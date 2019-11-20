@@ -16,6 +16,10 @@ install-tools:
 		echo "installing goconvey..."; \
 		go get github.com/smartystreets/goconvey; \
 	fi
+	@if [ ! -f $(GOPATH)/bin/gothanks ]; then \
+		echo "installing gothanks..."; \
+		go get -u github.com/psampaz/gothanks; \
+	fi
 
 install-deps:
 	go get .
@@ -31,6 +35,9 @@ lint: install-tools
 
 goconvey: install-tools
 	$(GOPATH)/bin/goconvey -excludedDirs build,config,doc,dist,specs,vendor
+
+thanks: install-tools
+	$(GOPATH)/bin/gothanks -y | grep -v "is already"
 
 dist:
 	zip -r dist/kynaptik-http.zip README.md $(SRC_CORE) "λh77p.go" go.mod go.sum
