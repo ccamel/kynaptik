@@ -204,7 +204,7 @@ action
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"yaml: line 4: did not find expected key","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"yaml: line 6: could not find expected ':'","status":"error"}`)
 	}
 
 	return f
