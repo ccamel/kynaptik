@@ -24,3 +24,20 @@ jobs:
           key: v1-pkg-cache
           paths:
             - "/go/pkg"
+
+  thanks:
+    docker:
+      - image: circleci/golang:1.13.4
+    working_directory: /go/src/github.com/{{ORG_NAME}}/{{REPO_NAME}}
+    steps:
+      - run: make thanks
+
+workflows:
+  version: 2
+  make:
+    jobs:
+      - build
+      - thanks:
+          filters:
+            branches:
+              only: master

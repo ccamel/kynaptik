@@ -7,15 +7,21 @@ require (
 	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
+	github.com/golang/protobuf v1.3.2 // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/justinas/alice v1.2.0
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
 	github.com/motemen/go-nuts v0.0.0-20190725124253-1d2432db96b0
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
+	github.com/psampaz/gothanks v0.2.0 // indirect
 	github.com/rs/zerolog v1.17.2
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/afero v1.2.2
 	github.com/tcnksm/go-httpstat v0.2.0
+	golang.org/x/crypto v0.0.0-20191119213627-4f8c1d86b1ba // indirect
+	golang.org/x/net v0.0.0-20191119073136-fc4aabc6c914 // indirect
+	golang.org/x/oauth2 v0.0.0-20190604053449-0f29369cfe45 // indirect
+	google.golang.org/appengine v1.6.5 // indirect
 	gopkg.in/validator.v2 v2.0.0-20180514200540-135c24b11c19
 	gopkg.in/yaml.v2 v2.2.7
 )
