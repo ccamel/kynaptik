@@ -9,6 +9,7 @@ The query is sent following the [HTTP protocol](https://graphql.org/learn/servin
 -   using HTTP method `POST`
 -   using the `application/json` content type
 -   including a JSON-encoded body of the following form:
+
 ```json
 {
   "query": "...",
@@ -22,6 +23,7 @@ The query is sent following the [HTTP protocol](https://graphql.org/learn/servin
 `graphql[s]://hostname[:port][/graphQLEndpoint]`
 
 Where the supported protocols are :   
+
 -   `graphql`: relative to an `http` request
 -   `graphqls` : relative to an `https` request
 

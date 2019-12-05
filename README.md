@@ -83,6 +83,7 @@ The yaml configuration has the following structure:
 
 -   `preCondition`: optional, specifies the condition (textual) to be satisfied for the function to be triggered. The condition is an expression 
     (text) compliant with the syntax of [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine. `true` by default.
+
 -   `action`: specifies the action to perform. The action specification is _templated_ using the [go template engine](https://golang.org/pkg/text/template/).
     See section below to have details about the evaluation environment.
     -   `uri`: mandatory, the URI of the endpoint to invoke. Shall resolve to a URI according to [rfc3986](https://www.ietf.org/rfc/rfc3986.txt).
@@ -91,6 +92,7 @@ The yaml configuration has the following structure:
     -   `...`: other fields depending on the kind of action.
 
 -   `postCondition`: optional, specifies the condition (textual) to be satisfied for the response of the call be considered successful.
+
 -   `maxBodySize`: optional, defines the maximum acceptable size (in bytes) of the incoming request body. No limit by default.
 
 The condition (either `preCondition` or `postCondition`) is an expression (text) compliant with the syntax of 
@@ -103,7 +105,7 @@ The _preCondition_, _postCondition_ expressions and the _action_ template are pr
 The data available in the environment is following:
 
 | name       | description                                                                                                                 | availability             |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------| ------------------------ |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | `data`     | The incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings). | always                   |
 | `config`   | The current configuration.                                                                                                  | always                   |
 | `response` | The response returned by the invocation. Datatype depends on the action performed.                                          | only for _postCondition_ |
@@ -116,10 +118,10 @@ functions can be found [here](http://masterminds.github.io/sprig/).
 
 Here's the currently supported actions:
 
-|Action|Description|Documentation  
-|---|---|---
-|**`http`** | Provides HTTP actions for calling external HTTP(S) resources. | [view documentation](./doc/action-http.md)
-|**`graphql`** | Provides [GraphQL][graphql] actions for calling external [GraphQL][graphql] APIs. | [view documentation](./doc/action-graphql.md)
+| Action        | Description                                                                       | Documentation                                 |
+| ------------- | --------------------------------------------------------------------------------- | --------------------------------------------- |
+| **`http`**    | Provides HTTP actions for calling external HTTP(S) resources.                     | [view documentation](./doc/action-http.md)    |
+| **`graphql`** | Provides [GraphQL][graphql] actions for calling external [GraphQL][graphql] APIs. | [view documentation](./doc/action-graphql.md) |
 
 [kubernetes]: https://kubernetes.io/
 
