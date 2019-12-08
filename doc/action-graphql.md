@@ -22,18 +22,17 @@ The query is sent following the [HTTP protocol](https://graphql.org/learn/servin
 
 `graphql[s]://hostname[:port][/graphQLEndpoint]`
 
-Where the supported protocols are :   
-
--   `graphql`: relative to an `http` request
--   `graphqls` : relative to an `https` request
-
 ## Configuration
 
-The `action` yaml element supports the following additional elements: 
+The `action` yaml element supports the following elements: 
 
--   `query`: mandatory, [GraphQL query](https://graphql.org/learn/queries/) to send.
--   `variables`: optional, the [GraphQL variables](https://graphql.org/learn/queries/#variables) to use.
--   `operationName`: optional, the name of the operation - only required if multiple operations are present in the query.
+| Field | Type | Req. | Default value | Description |
+|--------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|----------|---------------|----------------------------------------------------------------------------|
+| `uri` | URI according to [rfc3986](https://www.ietf.org/rfc/rfc3986.txt). | ✓ |  | The URL to invoke.<br/>`graphql`: relative to an `http` request<br/>`graphqls` : relative to an `https` request |
+| `query` | `graphQL` query (textual). | ✓ | | [GraphQL query](https://graphql.org/learn/queries/) to send. |
+| `variables` | name/value `map`. |  |  | [GraphQL variables](https://graphql.org/learn/queries/#variables) to use. |
+| `operationName` | `string` |  |  | The name of the operation - only required if multiple operations are present in the query. |
+| `timeout` | `positive integer`. |  |  | Specifies the timeout for waiting for data (in ms). No timeout by default. |
 
 ## Evaluation environment
 
