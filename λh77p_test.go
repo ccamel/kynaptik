@@ -141,6 +141,47 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 	}
 }
 
+func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPActionOptions, errMessage string) func() httpFixture {
+	return func() httpFixture {
+		port, err := freeport.GetFreePort()
+		So(err, ShouldBeNil)
+
+		return httpFixture{
+			ctx: context.Background(),
+			httpAction: HTTPAction{
+				ActionCore: ActionCore{
+					URI: fmt.Sprintf("http://127.0.0.1:%d", port),
+				},
+				Method:  "GET",
+				Options: options,
+			},
+			arrange: func(c C, ctx context.Context) func() {
+				listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+				So(err, ShouldBeNil)
+
+				go func() {
+					count := 0
+					err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), 301)
+					}))
+					if err != nil {
+						c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+					}
+				}()
+				return func() {
+					err := listener.Close()
+					So(err, ShouldBeNil)
+				}
+			},
+			assert: func(res interface{}, err error) {
+				So(err, ShouldNotBeNil)
+				So(res.(*http.Response).StatusCode, ShouldEqual, http.StatusMovedPermanently)
+				So(err.Error(), ShouldEqual, fmt.Sprintf(errMessage, port))
+			},
+		}
+	}
+}
+
 func httpTimeoutInvocationFixture() httpFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
@@ -192,6 +233,8 @@ func TestHttpFunction(t *testing.T) {
 		fixtures := []httpFixtureSupplier{
 			httpSuccessfulPostWithHeadersInvocationFixture,
 			httpSuccessfulGetWithRedirectInvocationFixture,
+			httpFailedGetWithRedirectInvocationFixtureProvider(HTTPActionOptions{FollowRedirect: false, MaxRedirects: 5}, "Get http://localhost:%[1]d/?q=0: no redirect allowed for http://localhost:%[1]d/?q=0"),
+			httpFailedGetWithRedirectInvocationFixtureProvider(HTTPActionOptions{FollowRedirect: true, MaxRedirects: 5}, "Get http://localhost:%[1]d/?q=0: stopped after 5 redirects"),
 			httpTimeoutInvocationFixture,
 		}
 
