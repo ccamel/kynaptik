@@ -21,6 +21,12 @@ type HTTPAction struct {
 	Method     string            `yaml:"method" validate:"nonzero,min=3"`
 	Headers    map[string]string `yaml:"headers"`
 	Body       string            `yaml:"body"`
+	Options    HTTPActionOptions `yaml:"options"`
+}
+
+type HTTPActionOptions struct {
+	FollowRedirect bool `yaml:"followRedirect"`
+	MaxRedirects   int  `yaml:"maxRedirects"`
 }
 
 func HTTPConfigFactory() Config {
@@ -37,6 +43,10 @@ func HTTPActionFactory() Action {
 	return &HTTPAction{
 		ActionCore: ActionCore{},
 		Headers:    map[string]string{},
+		Options: HTTPActionOptions{
+			FollowRedirect: true,
+			MaxRedirects:   50,
+		},
 	}
 }
 
@@ -45,7 +55,7 @@ func HTTPEntryPoint(w http.ResponseWriter, r *http.Request) {
 	invokeλ(w, r, afero.NewOsFs(), HTTPConfigFactory, HTTPActionFactory)
 }
 
-func (a HTTPAction) MarshalZerologObject(e *zerolog.Event) {
+func (a *HTTPAction) MarshalZerologObject(e *zerolog.Event) {
 	e.
 		Str("uri", a.URI).
 		Str("method", a.Method).
@@ -57,7 +67,7 @@ func (a HTTPAction) MarshalZerologObject(e *zerolog.Event) {
 		Str("body", a.Body)
 }
 
-func (a HTTPAction) Validate() error {
+func (a *HTTPAction) Validate() error {
 	if err := validator.Validate(a); err != nil {
 		return err
 	}
@@ -74,7 +84,7 @@ func (a HTTPAction) Validate() error {
 	return nil
 }
 
-func (a HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
+func (a *HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
 	request, err := http.NewRequest(a.Method, a.URI, strings.NewReader(a.Body))
 	if err != nil {
 		return nil, err
@@ -105,6 +115,16 @@ func (a HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
 			},
 		},
 		Timeout: time.Duration(a.Timeout),
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if !a.Options.FollowRedirect {
+				return fmt.Errorf("no redirect allowed for %s", req.URL.String())
+			}
+			nbRedirects := len(via)
+			if nbRedirects >= a.Options.MaxRedirects {
+				return fmt.Errorf("stopped after %d redirects", nbRedirects)
+			}
+			return nil
+		},
 	}
 
 	return client.Do(request) //nolint:bodyclose

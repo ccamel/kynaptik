@@ -21,7 +21,7 @@ import (
 type httpFixtureSupplier func() httpFixture
 
 type httpFixture struct {
-	ctx context.Context
+	ctx        context.Context
 	httpAction HTTPAction
 	// arrange is a function which initializes the fixture and in returns provides a function which finalizes (clean)
 	// that fixture when called
@@ -89,11 +89,104 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 	}
 }
 
+func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	return httpFixture{
+		ctx: context.Background(),
+		httpAction: HTTPAction{
+			ActionCore: ActionCore{
+				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
+			},
+			Method: "GET",
+			Options: HTTPActionOptions{
+				FollowRedirect: true,
+				MaxRedirects:   5,
+			},
+		},
+		arrange: func(c C, ctx context.Context) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				count := 0
+				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					count++
+					if count < 5 {
+						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), 301)
+					} else {
+						_, _ = io.WriteString(w, "ok")
+					}
+				}))
+				if err != nil {
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(res interface{}, err error) {
+			So(err, ShouldBeNil)
+			So(res, ShouldHaveSameTypeAs, &http.Response{})
+
+			So(res.(*http.Response).StatusCode, ShouldEqual, http.StatusOK)
+
+			body, err := ioutil.ReadAll(res.(*http.Response).Body)
+			So(err, ShouldBeNil)
+			So(string(body), ShouldEqual, `ok`)
+		},
+	}
+}
+
+func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPActionOptions, errMessage string) func() httpFixture {
+	return func() httpFixture {
+		port, err := freeport.GetFreePort()
+		So(err, ShouldBeNil)
+
+		return httpFixture{
+			ctx: context.Background(),
+			httpAction: HTTPAction{
+				ActionCore: ActionCore{
+					URI: fmt.Sprintf("http://127.0.0.1:%d", port),
+				},
+				Method:  "GET",
+				Options: options,
+			},
+			arrange: func(c C, ctx context.Context) func() {
+				listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+				So(err, ShouldBeNil)
+
+				go func() {
+					count := 0
+					err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), 301)
+					}))
+					if err != nil {
+						c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+					}
+				}()
+				return func() {
+					err := listener.Close()
+					So(err, ShouldBeNil)
+				}
+			},
+			assert: func(res interface{}, err error) {
+				So(err, ShouldNotBeNil)
+				So(res.(*http.Response).StatusCode, ShouldEqual, http.StatusMovedPermanently)
+				So(err.Error(), ShouldEqual, fmt.Sprintf(errMessage, port))
+			},
+		}
+	}
+}
+
 func httpTimeoutInvocationFixture() httpFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 200 * time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
 
 	return httpFixture{
 		ctx: ctx,
@@ -101,7 +194,7 @@ func httpTimeoutInvocationFixture() httpFixture {
 			ActionCore: ActionCore{
 				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
 			},
-			Method: "GET",
+			Method:  "GET",
 			Headers: map[string]string{},
 		},
 		arrange: func(c C, ctx context.Context) func() {
@@ -111,10 +204,10 @@ func httpTimeoutInvocationFixture() httpFixture {
 			go func() {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					select {
-						case <-ctx.Done():
-							// ok
-						case <-time.After(5 * time.Second):
-							c.So("Should not be here", ShouldBeNil)
+					case <-ctx.Done():
+						// ok
+					case <-time.After(5 * time.Second):
+						c.So("Should not be here", ShouldBeNil)
 					}
 				}))
 				if err != nil {
@@ -139,11 +232,14 @@ func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []httpFixtureSupplier{
 			httpSuccessfulPostWithHeadersInvocationFixture,
+			httpSuccessfulGetWithRedirectInvocationFixture,
+			httpFailedGetWithRedirectInvocationFixtureProvider(HTTPActionOptions{FollowRedirect: false, MaxRedirects: 5}, "Get http://localhost:%[1]d/?q=0: no redirect allowed for http://localhost:%[1]d/?q=0"),
+			httpFailedGetWithRedirectInvocationFixtureProvider(HTTPActionOptions{FollowRedirect: true, MaxRedirects: 5}, "Get http://localhost:%[1]d/?q=0: stopped after 5 redirects"),
 			httpTimeoutInvocationFixture,
 		}
 
-		for _, fixtureSupplier := range fixtures {
-			Convey(fmt.Sprintf("Given the fixture supplier '%s'", runtime.FuncForPC(reflect.ValueOf(fixtureSupplier).Pointer()).Name()), func() {
+		for k, fixtureSupplier := range fixtures {
+			Convey(fmt.Sprintf("Given the fixture supplier '%s' (case %d)", runtime.FuncForPC(reflect.ValueOf(fixtureSupplier).Pointer()).Name(), k), func() {
 				l := log.With().Logger()
 
 				fixture := fixtureSupplier()
@@ -173,6 +269,8 @@ func TestHttpActionFactory(t *testing.T) {
 			So(action.(*HTTPAction).URI, ShouldEqual, "")
 			So(action.(*HTTPAction).Headers, ShouldResemble, map[string]string{})
 			So(action.(*HTTPAction).Body, ShouldEqual, "")
+			So(action.(*HTTPAction).Options.MaxRedirects, ShouldEqual, 50)
+			So(action.(*HTTPAction).Options.FollowRedirect, ShouldEqual, true)
 		})
 	})
 }
@@ -194,7 +292,7 @@ func TestHttpValidateAction(t *testing.T) {
 				"invalid URL",
 				HTTPAction{
 					ActionCore: ActionCore{URI: "%12334%"},
-					Method: "GET",
+					Method:     "GET",
 				},
 				`parse %12334%: invalid URL escape "%"`,
 			},
@@ -202,7 +300,7 @@ func TestHttpValidateAction(t *testing.T) {
 				"invalid scheme",
 				HTTPAction{
 					ActionCore: ActionCore{URI: "ftp://nowhere?p=foo"},
-					Method: "GET",
+					Method:     "GET",
 				},
 				`unsupported scheme ftp. Only http(s) supported`,
 			},
@@ -210,7 +308,7 @@ func TestHttpValidateAction(t *testing.T) {
 				"valid",
 				HTTPAction{
 					ActionCore: ActionCore{URI: "http://nowhere/"},
-					Method: "GET",
+					Method:     "GET",
 				},
 				"",
 			},
@@ -229,7 +327,7 @@ func TestHttpValidateAction(t *testing.T) {
 }
 
 func TestHTTPEntryPoint(t *testing.T) {
-	Convey("When calling 'GraphQLEntryPoint' function", t, func(c C) {
+	Convey("When calling 'HTTPEntryPoint' function", t, func(c C) {
 		Convey("Then it shall panic (this is expected)", func() {
 			So(func() {
 				HTTPEntryPoint(nil, nil)
