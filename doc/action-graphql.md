@@ -69,7 +69,7 @@ data:
             }
           }
         }
-    variables:        
+      variables:        
         name: '{{ .data.name }}'        
     postCondition: |
       response.StatusCode == 200
