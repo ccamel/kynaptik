@@ -7,6 +7,7 @@ import (
 	"math/rand"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"reflect"
 	"runtime"
 	"strings"
@@ -76,18 +77,24 @@ func arrangeConfig(f engineFixture) func() {
 // arrangeSecret installs (optionally) a secret file in the (mocked) filesystem.
 // See: https://docs.fission.io/docs/usage/access-secret-cfgmap-in-function/#accessing-secrets-and-configmaps
 func arrangeSecret(f engineFixture) func() {
-	if f.secret != "" {
-		path := "/secrets/my-namespace/my-function"
-		err := f.appFS.MkdirAll(path, 0755)
-		So(err, ShouldBeNil)
+	return arrangeSecretWithPermissions(0644)(f)
+}
 
-		if f.config != "" {
-			err = afero.WriteFile(f.appFS, path+"/function-secret.yml", []byte(f.secret), 0644)
+func arrangeSecretWithPermissions(permission os.FileMode) func(f engineFixture) func() {
+	return func(f engineFixture) func() {
+		if f.secret != "" {
+			path := "/secrets/my-namespace/my-function"
+			err := f.appFS.MkdirAll(path, 0755)
 			So(err, ShouldBeNil)
-		}
-	}
 
-	return noop
+			if f.config != "" {
+				err = afero.WriteFile(f.appFS, path+"/function-secret.yml", []byte(f.secret), permission)
+				So(err, ShouldBeNil)
+			}
+		}
+
+		return noop
+	}
 }
 
 func arrangeReqNamespaceHeaders(f engineFixture) func() {
@@ -197,6 +204,26 @@ func notFoundYamlConfigurationFixture() engineFixture {
 	f.fnReq = req
 	f.config = ""
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeConfig)
+	f.act = actDefault
+	f.assert = func(rr *httptest.ResponseRecorder) {
+		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"no configuration file function-spec.yml found in /configs/my-namespace","status":"error"}`)
+	}
+
+	return f
+}
+
+func notFoundYamlSecretFixture() engineFixture {
+	req, err := http.NewRequest("GET", "/", nil)
+	So(err, ShouldBeNil)
+
+	f := engineFixture{}
+
+	f.appFS = afero.NewMemMapFs()
+	f.fnReq = req
+	f.config = ""
+	f.secret = ""
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeSecret)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -840,6 +867,7 @@ func TestEngine(t *testing.T) {
 		fixtures := []engineFixtureSupplier{
 			noDirectoryForConfigurationFixture,
 			notFoundYamlConfigurationFixture,
+			notFoundYamlSecretFixture,
 			notWellFormedYamlConfigurationFixture,
 			emptyActionConfigurationFixture,
 			invalidActionFixture,
