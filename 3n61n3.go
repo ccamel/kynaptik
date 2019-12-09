@@ -29,6 +29,7 @@ type ctxKey string
 
 var (
 	ctxKeyConfig               = ctxKey("config")
+	ctxKeySecret               = ctxKey("secret")
 	ctxKeyPreConditionProgram  = ctxKey("pre-condition-program")
 	ctxKeyPostConditionProgram = ctxKey("post-condition-program")
 	ctxKeyData                 = ctxKey("data")
@@ -55,6 +56,7 @@ func invokeλ(
 			hlog.RequestIDHandler("req-id", "Request-Id"),
 			logIncomingRequestHandler(),
 			loadConfigurationHandler(fs, configFactory),
+			loadSecretHandler(fs),
 			checkContentLengthHandler(),
 			checkContentTypeHandler(),
 			parsePreConditionHandler(),
@@ -98,6 +100,10 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 				}
 			}()
 
+			if err == nil && in == nil {
+				err = fmt.Errorf(`no configuration file %s found in /%s/%s`, configName, folder, namespace) // TODO not handy
+			}
+
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
@@ -133,9 +139,63 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 				FromRequest(r).
 				Info().
 				Object("configuration", c).
-				Msg("🗒️ configuration loaded")
+				Msg("🗒 configuration loaded")
 
 			r = r.WithContext(context.WithValue(r.Context(), ctxKeyConfig, c))
+
+			Ͱ.ServeHTTP(w, r)
+		})
+	}
+}
+
+func loadSecretHandler(fs afero.Fs) func(next http.Handler) http.Handler {
+	return func(Ͱ http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			resourceName := "function-secret.yml"
+			folder := "secrets"
+			namespace := r.Header.Get("X-Fission-Function-Namespace")
+
+			in, err := OpenResource(fs, folder, namespace, resourceName)
+			defer func() {
+				if in != nil {
+					_ = in.Close()
+				}
+			}()
+
+			if err != nil {
+				_, _ = jsend.
+					Wrap(w).
+					Status(http.StatusServiceUnavailable).
+					Message(err.Error()).
+					Data(&ResponseData{"load-secret"}).
+					Send()
+				return
+			}
+
+			if in != nil {
+				c := map[string]interface{}{}
+				if err := yaml.NewDecoder(in).Decode(&c); err != nil {
+					_, _ = jsend.
+						Wrap(w).
+						Status(http.StatusServiceUnavailable).
+						Message(err.Error()).
+						Data(&ResponseData{"load-secret"}).
+						Send()
+					return
+				}
+
+				hlog.
+					FromRequest(r).
+					Info().
+					Msg("📓 secret loaded")
+
+				r = r.WithContext(context.WithValue(r.Context(), ctxKeySecret, c))
+			} else {
+				hlog.
+					FromRequest(r).
+					Debug().
+					Msg("📓 no secret loaded")
+			}
 
 			Ͱ.ServeHTTP(w, r)
 		})
@@ -314,6 +374,7 @@ func buildEnvironmentHandler() func(next http.Handler) http.Handler {
 			env := environment{
 				"data":   r.Context().Value(ctxKeyData),
 				"config": r.Context().Value(ctxKeyConfig),
+				"secret": r.Context().Value(ctxKeySecret),
 			}
 
 			hlog.
