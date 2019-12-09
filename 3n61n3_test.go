@@ -24,8 +24,11 @@ type engineFixture struct {
 	appFS afero.Fs
 	// config specifies the configuration provided for the test
 	config string
+	// secret specifies the secret provided for the test.
+	// default value (i.e. the empty string) means no secret provided.
 	// fnReq represents the incoming request
-	fnReq *http.Request
+	secret string
+	fnReq  *http.Request
 	// actionValidate is the validation function for the action
 	actionValidate func(action protoAction) error
 	// actionBehaviour is the mocked behaviour of the action
@@ -55,15 +58,33 @@ func arrangeTime(f engineFixture) func() {
 	return noop
 }
 
+// arrangeConfig installs a configuration file in the (mocked) filesystem.
+// See: https://docs.fission.io/docs/usage/access-secret-cfgmap-in-function/#accessing-secrets-and-configmaps
 func arrangeConfig(f engineFixture) func() {
-	// install mock for config
-	path := "/configs/my-namespace/a-config-map"
+	path := "/configs/my-namespace/my-function"
 	err := f.appFS.MkdirAll(path, 0755)
 	So(err, ShouldBeNil)
 
 	if f.config != "" {
 		err = afero.WriteFile(f.appFS, path+"/function-spec.yml", []byte(f.config), 0644)
 		So(err, ShouldBeNil)
+	}
+
+	return noop
+}
+
+// arrangeSecret installs (optionally) a secret file in the (mocked) filesystem.
+// See: https://docs.fission.io/docs/usage/access-secret-cfgmap-in-function/#accessing-secrets-and-configmaps
+func arrangeSecret(f engineFixture) func() {
+	if f.secret != "" {
+		path := "/secrets/my-namespace/my-function"
+		err := f.appFS.MkdirAll(path, 0755)
+		So(err, ShouldBeNil)
+
+		if f.config != "" {
+			err = afero.WriteFile(f.appFS, path+"/function-secret.yml", []byte(f.secret), 0644)
+			So(err, ShouldBeNil)
+		}
 	}
 
 	return noop
@@ -156,11 +177,11 @@ func noDirectoryForConfigurationFixture() engineFixture {
 	f.appFS = afero.NewMemMapFs()
 	f.fnReq = req
 	f.config = ""
-	f.arrange = arrangeWith(f)
+	f.arrange = arrangeWith(f, arrangeReqNamespaceHeaders)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"open /configs: file does not exist","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"no configuration file function-spec.yml found in /configs/my-namespace","status":"error"}`)
 	}
 
 	return f
@@ -211,7 +232,7 @@ action
 }
 
 func emptyActionConfigurationFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader("{}"))
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{}"))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -235,7 +256,7 @@ action:
 }
 
 func invalidActionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader("{}"))
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{}"))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -263,7 +284,7 @@ action: |
 }
 
 func incorrectActionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader("{}"))
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{}"))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -288,7 +309,7 @@ action: |
 }
 
 func tooBigContentLengthIncomingRequestFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  nil)
+	req, err := http.NewRequest("GET", "/", nil)
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -315,7 +336,7 @@ maxBodySize: 990
 }
 
 func tooBigContentIncomingRequestFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(strings.Repeat("!", 100)))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(strings.Repeat("!", 100)))
 	So(err, ShouldBeNil)
 
 	req.ContentLength = -1 // force unknown length
@@ -344,7 +365,7 @@ maxBodySize: 99
 }
 
 func unsupportedMediaTypeIncomingRequestFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  nil)
+	req, err := http.NewRequest("GET", "/", nil)
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -369,9 +390,8 @@ action: |
 	return f
 }
 
-
 func unparsableMediaTypeIncomingRequestFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  nil)
+	req, err := http.NewRequest("GET", "/", nil)
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -397,7 +417,7 @@ action: |
 }
 
 func invalidJSONRequestFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader("{malformed}"))
+	req, err := http.NewRequest("GET", "/", strings.NewReader("{malformed}"))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -423,7 +443,7 @@ action: |
 }
 
 func unparsablePreConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar2" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar2" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -448,7 +468,7 @@ action: |
 }
 
 func invalidPreConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar2" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar2" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -473,7 +493,7 @@ action: |
 }
 
 func wrongTypePreConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar2" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar2" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -498,7 +518,7 @@ action: |
 }
 
 func unsatisfiedPreConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -523,7 +543,7 @@ action: |
 }
 
 func unparsablePostConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar2" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar2" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -551,7 +571,7 @@ postCondition: |
 }
 
 func invalidPostConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar2" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar2" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -571,7 +591,7 @@ postCondition: |
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionValidate = func(action protoAction) error { return nil }
-	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil	}
+	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
 		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:5)\n | a + 5 == 6\n | ....^","status":"fail"}`)
@@ -581,7 +601,7 @@ postCondition: |
 }
 
 func wrongTypePostConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar2" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar2" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -601,7 +621,7 @@ postCondition: |
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionValidate = func(action protoAction) error { return nil }
-	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil	}
+	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
 		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"incorrect type string returned when evaluating expression 'response\n'. Expected 'boolean'","status":"fail"}`)
@@ -611,7 +631,7 @@ postCondition: |
 }
 
 func unsatisfiedPostConditionFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar2" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar2" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -631,7 +651,7 @@ postCondition: |
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionValidate = func(action protoAction) error { return nil }
-	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil	}
+	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadGateway)
 		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"endpoint 'null://' call didn't satisfy postCondition: response == \"ok\"\n","status":"error"}`)
@@ -641,7 +661,7 @@ postCondition: |
 }
 
 func badActionTemplateFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -658,7 +678,7 @@ action: |
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionValidate = func(action protoAction) error { return nil }
-	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil	}
+	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
 		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"template: action:1: function \"unknownfunc\" not defined","status":"error"}`)
@@ -685,7 +705,7 @@ func (r *ErroredReader) Read(p []byte) (n int, err error) {
 }
 
 func crappyCallerFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  &ErroredReader{0})
+	req, err := http.NewRequest("GET", "/", &ErroredReader{0})
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -709,9 +729,8 @@ action: |
 	return f
 }
 
-
 func badInvocationFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{"foo": "bar" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{"foo": "bar" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -728,7 +747,9 @@ action: |
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionValidate = func(action protoAction) error { return nil }
-	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return nil, fmt.Errorf("net/http: request canceled")	}
+	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
+		return nil, fmt.Errorf("net/http: request canceled")
+	}
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadGateway)
 		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"do-action"},"message":"net/http: request canceled","status":"error"}`)
@@ -738,7 +759,7 @@ action: |
 }
 
 func successfulInvocationFixture() engineFixture {
-	req, err := http.NewRequest("GET", "/",  strings.NewReader(`{  "firstName": "John", "lastName": "Doe" }`))
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{  "firstName": "John", "lastName": "Doe" }`))
 	So(err, ShouldBeNil)
 
 	f := engineFixture{}
@@ -774,6 +795,46 @@ postCondition: |
 	return f
 }
 
+func successfulInvocationWithSecretFixture() engineFixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{  "firstName": "John", "lastName": "Doe" }`))
+	So(err, ShouldBeNil)
+
+	f := engineFixture{}
+
+	f.appFS = afero.NewMemMapFs()
+	f.fnReq = req
+	f.config = `
+preCondition: |
+  true
+
+action: |
+  uri: 'null://127.0.0.1'
+  param1: '{{ .secret.username | b64dec }}:{{ .secret.password | b64dec }}'
+
+postCondition: |
+  true
+`
+	f.secret = `
+username: 'YWRtaW4='
+password: 'c+KCrGNy4oKsdA=='
+`
+
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig, arrangeSecret)
+	f.act = actDefault
+	f.actionValidate = func(action protoAction) error { return nil }
+	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
+		So(action.Param1, ShouldEqual, "admin:s€cr€t")
+
+		return "ok", nil
+	}
+	f.assert = func(rr *httptest.ResponseRecorder) {
+		So(rr.Code, ShouldEqual, http.StatusOK)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
+	}
+
+	return f
+}
+
 func TestEngine(t *testing.T) {
 	Convey("Considering the engine", t, func(c C) {
 		fixtures := []engineFixtureSupplier{
@@ -799,6 +860,7 @@ func TestEngine(t *testing.T) {
 			badActionTemplateFixture,
 			badInvocationFixture,
 			successfulInvocationFixture,
+			successfulInvocationWithSecretFixture,
 			crappyCallerFixture,
 		}
 
