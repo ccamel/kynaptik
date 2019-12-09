@@ -79,7 +79,7 @@ func EvaluatePredicateExpression(predicate *vm.Program, ctx map[string]interface
 	}
 }
 
-func findFilename(fs afero.Fs, root, filename string) (string, error) {
+func FindFilename(fs afero.Fs, root, filename string) (string, error) {
 	fsutil := &afero.Afero{Fs: fs}
 
 	var configPath string
@@ -104,4 +104,20 @@ func findFilename(fs afero.Fs, root, filename string) (string, error) {
 	})
 
 	return configPath, err
+}
+
+func OpenResource(fs afero.Fs, resourceFolder, namespace, resourceName string) (io.ReadCloser, error) {
+	root := fmt.Sprintf("/%s/%s", resourceFolder, namespace)
+
+	configPath, err := FindFilename(fs, root, resourceName)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if configPath == "" {
+		return nil, fmt.Errorf(`no configuration file %s found in %s`, resourceName, root)
+	}
+
+	return fs.Open(configPath)
 }

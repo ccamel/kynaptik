@@ -88,37 +88,16 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			configName := "function-spec.yml"
-			root := fmt.Sprintf("/%s/%s",
-				"configs", r.Header.Get("X-Fission-Function-Namespace"))
+			folder := "configs"
+			namespace := r.Header.Get("X-Fission-Function-Namespace")
 
-			configPath, err := findFilename(fs, root, configName)
-
-			if err != nil {
-				_, _ = jsend.
-					Wrap(w).
-					Status(http.StatusServiceUnavailable).
-					Message(err.Error()).
-					Data(&ResponseData{"load-configuration"}).
-					Send()
-				return
-			}
-
-			if configPath == "" {
-				_, _ = jsend.
-					Wrap(w).
-					Status(http.StatusServiceUnavailable).
-					Message(fmt.Sprintf(`no configuration file %s found in %s`, configName, root)).
-					Data(&ResponseData{"load-configuration"}).
-					Send()
-				return
-			}
-
-			in, err := fs.Open(configPath)
+			in, err := OpenResource(fs, folder, namespace, configName)
 			defer func() {
 				if in != nil {
 					_ = in.Close()
 				}
 			}()
+
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
