@@ -48,7 +48,7 @@ The incoming messages are expected to be qualified enough for the processing.
 
 `Kynaptiꓘ` is configured by a k8s `ConfigMap` which defines the configuration for the function.
 
-The `ConfigMap` _shall_ declares a key in `data` which contain the `yaml` configuration of the function.
+The `ConfigMap` _shall_ declares the key `function-spec.yml` under the key `data`, which contains the `yaml` configuration of the function.
 
 For instance:
 
@@ -59,7 +59,7 @@ metadata:
   namespace: default
   name: kynaptik-http-configmap
 data:
-  function-spec: |
+  function-spec.yml: |
     preCondition: |
       data.foo == "bar"
 
@@ -98,16 +98,40 @@ The yaml configuration has the following structure:
 The condition (either `preCondition` or `postCondition`) is an expression (text) compliant with the syntax of 
 [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine.
 
+### secrets
+
+Along with a [ConfigMap](https://kubernetes.io/docs/tasks/configure-pod-container/configure-pod-configmap/),  `Kynaptiꓘ` supports 
+[k8s secrets](https://kubernetes.io/docs/concepts/configuration/secret/) which allows to inject sensitive information (such as passwords)
+in the function, and make them available in the execution context.
+
+The `secret` _shall_ declares the key `function-secret.yml` under the field `data`, which contains all the `yaml` secrets of the function.
+
+For instance:
+
+```yaml
+apiVersion: v1
+kind: Secret
+metadata:
+  namespace: default
+  name: kynaptik-http-secret
+type: Opaque
+data:
+  function-secret.yml: |
+    username: YWRtaW4=
+    password: c+KCrGNy4oKsdA==
+```
+
 ## Evaluation environment
 
 The _preCondition_, _postCondition_ expressions and the _action_ template are processed against an environment.
 
 The data available in the environment is following:
 
-| name       | description                                                                                                                 | availability             |
+| name       | description                                                                                                                 | scope                    |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
 | `data`     | The incoming message (_body_ only), serialized into a map structure, with preservation of primary types (numbers, strings). | always                   |
-| `config`   | The current configuration.                                                                                                  | always                   |
+| `config`   | The current configuration (as loaded from the ConfigMaps).                                                                  | always                   |
+| `secret`   | The current secret (if provided).                                                                                           | always                   |
 | `response` | The response returned by the invocation. Datatype depends on the action performed.                                          | only for _postCondition_ |
 
 Some useful functions are also injected in the environment covering a large set of operations: string, date, maths, encoding...

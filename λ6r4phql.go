@@ -62,7 +62,7 @@ func (a GraphQLAction) MarshalZerologObject(e *zerolog.Event) {
 }
 
 func (a GraphQLAction) Validate() error {
-	if err := validator.Validate(a); err != nil {
+	if err := validator.Validate(&a); err != nil {
 		return err
 	}
 
