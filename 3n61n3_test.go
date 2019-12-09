@@ -258,6 +258,36 @@ action
 	return f
 }
 
+func notWellFormedYamlSecretFixture() engineFixture {
+	req, err := http.NewRequest("GET", "/", nil)
+	So(err, ShouldBeNil)
+
+	f := engineFixture{}
+
+	f.appFS = afero.NewMemMapFs()
+	f.fnReq = req
+	f.config = `
+preCondition: |
+ true == true
+
+action: |
+  uri: 'null://'
+  param1: 'foo'
+`
+	f.secret = `
+a
+b
+`
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeConfig, arrangeSecret)
+	f.act = actDefault
+	f.assert = func(rr *httptest.ResponseRecorder) {
+		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-secret"},"message":"yaml: unmarshal errors:\n  line 2: cannot unmarshal !!str `+"`a b`"+` into map[string]interface {}","status":"error"}`)
+	}
+
+	return f
+}
+
 func emptyActionConfigurationFixture() engineFixture {
 	req, err := http.NewRequest("GET", "/", strings.NewReader("{}"))
 	So(err, ShouldBeNil)
@@ -869,6 +899,7 @@ func TestEngine(t *testing.T) {
 			notFoundYamlConfigurationFixture,
 			notFoundYamlSecretFixture,
 			notWellFormedYamlConfigurationFixture,
+			notWellFormedYamlSecretFixture,
 			emptyActionConfigurationFixture,
 			invalidActionFixture,
 			incorrectActionFixture,
