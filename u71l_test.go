@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/antonmedv/expr"
@@ -12,6 +13,8 @@ import (
 
 func TestRenderTemplatedString(t *testing.T) {
 	Convey("Considering RenderTemplatedString() function", t, func(c C) {
+		os.Setenv("FOO", "BAR")
+
 		cases := []struct {
 			name     string
 			template string
@@ -31,6 +34,12 @@ func TestRenderTemplatedString(t *testing.T) {
 					"name": "John Doe",
 				},
 				expected: "Hello John Doe!",
+			},
+			{
+				name:     "env",
+				template: `{{ env "FOO" }}!`,
+				ctx:      map[string]interface{}{},
+				expected: "BAR!",
 			},
 			{
 				name:     "url-path-escape",
