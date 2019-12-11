@@ -20,6 +20,10 @@ install-tools:
 		echo "installing gothanks..."; \
 		go get -u github.com/psampaz/gothanks; \
 	fi
+	@if [ ! -f $(GOPATH)/bin/generate-tls-cert ]; then \
+		echo "installing generate-tls-cert... $(GOPATH)"; \
+		go get github.com/Shyp/generate-tls-cert; \
+	fi
 
 install-deps:
 	go get .
@@ -38,6 +42,12 @@ goconvey: install-tools
 
 thanks: install-tools
 	$(GOPATH)/bin/gothanks -y | grep -v "is already"
+
+certificates: install-tools clean-certificates
+	cd etc/cert && $(GOPATH)/bin/generate-tls-cert --host localhost --duration 876000h
+
+clean-certificates:
+	rm -f etc/cert/*
 
 dist:
 	zip -r dist/kynaptik-http.zip README.md $(SRC_CORE) "λh77p.go" go.mod go.sum
