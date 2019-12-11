@@ -121,11 +121,30 @@ data:
     password: c+KCrGNy4oKsdA==
 ```
 
-## Evaluation environment
+### environment variables
 
-The _preCondition_, _postCondition_ expressions and the _action_ template are processed against an environment.
+Fission supports access to environment variables through `PodSpecs`, which defines the 
+specifications of many behaviors of functions in a declarative manner. A complete documentation can be found
+[here](https://docs.fission.io/docs/spec/podspec/envvar/).
 
-The data available in the environment is following:
+Within `Kynaptiꓘ`, environment variables can easily be retrieved using the template action `env` and providing
+the name of the variable as argument:
+
+```gotemplate
+{{ env "FOO" }}
+```
+
+Variable expansion is also available as template action, as shown below:
+
+```gotemplate
+{{ "Hello $FOO" | expandenv }}
+```
+
+## Evaluation context
+
+The _preCondition_, _postCondition_ expressions and the _action_ template are processed against a context.
+
+The data tag available in the context is following:
 
 | name       | description                                                                                                                 | scope                    |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
@@ -134,7 +153,7 @@ The data available in the environment is following:
 | `secret`   | The current secret (if provided).                                                                                           | always                   |
 | `response` | The response returned by the invocation. Datatype depends on the action performed.                                          | only for _postCondition_ |
 
-Some useful functions are also injected in the environment covering a large set of operations: string, date, maths, encoding...
+Some useful functions are also injected in the context covering a large set of operations: string, date, maths, encoding, environment...
 The functions are mainly brought by the [Masterminds/sprig](https://github.com/Masterminds/sprig) project. The complete description of those 
 functions can be found [here](http://masterminds.github.io/sprig/).
 
