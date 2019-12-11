@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/Masterminds/sprig/v3 v3.0.1
+	github.com/Shyp/generate-tls-cert v0.0.0-20180217183001-cd913b339294 // indirect
 	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76

@@ -16,8 +16,12 @@ The `action` yaml element supports the following elements:
 | `method` | A `string` among the following values: `GET`, `OPTIONS`, `GET`, `HEAD`, `POST`, `PUT`, `DELETE`, `TRACE`, `CONNECT` (according to [rfc2616](https://www.ietf.org/rfc/rfc2616.txt)). | ✓ |  | The HTTP method. |
 | `headers` | key/value `map`. |  |  | The HTTP headers (key/value set). |
 | `body` | `text` |  |  | The content of the body. |
-| `options:`<br/>&nbsp;&nbsp;&nbsp;`followRedirect` | `boolean`. |  | `true` | Tell to follow redirects. |
-| `options:`<br/>&nbsp;&nbsp;&nbsp;`maxRedirects` | `positive integer`. |  | `50` | Specifies the maximum number of redirects to follow. |
+| `options:`<br/>&nbsp;&nbsp;`transport:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`followRedirect` | `boolean`. |  | `true` | Tell to follow redirects. |
+| `options:`<br/>&nbsp;&nbsp;`transport:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`maxRedirects` | `positive integer`. |  | `50` | Specifies the maximum number of redirects to follow. |
+| `options:`<br/>&nbsp;&nbsp;`tls:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`caCertData` | `string`. |  |  | Root certificate authority that the client use when verifying server certificates. |
+| `options:`<br/>&nbsp;&nbsp;`tls:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`clientCertData` | `string`. |  |  | PEM encoded data of the public key. |
+| `options:`<br/>&nbsp;&nbsp;`tls:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`clientKeyData` | `string`. |  |  | PEM encoded data of the private key. |
+| `options:`<br/>&nbsp;&nbsp;`tls:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`insecureSkipVerify` | `boolean`. |  | `false` | Controls whether the client verifies the server's certificate chain and host name. :warning: if `true`, TLS is susceptible to man-in-the-middle attacks. |
 | `timeout` | `positive integer`. |  |  | Specifies the timeout for waiting for data (in ms). No timeout by default. |
 
 ## Evaluation environment
@@ -48,6 +52,7 @@ data:
           message: {{ .data.message }}
         }
       options:
-        followRedirect: true
-        maxRedirects: 10
+        transport:
+          followRedirect: true
+          maxRedirects: 10
 ```

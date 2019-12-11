@@ -2,6 +2,9 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
+	"crypto/x509"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -21,12 +24,53 @@ type HTTPAction struct {
 	Method     string            `yaml:"method" validate:"nonzero,min=3"`
 	Headers    map[string]string `yaml:"headers"`
 	Body       string            `yaml:"body"`
-	Options    HTTPActionOptions `yaml:"options"`
+	Options    HTTPOptions       `yaml:"options"`
 }
 
-type HTTPActionOptions struct {
+type HTTPOptions struct {
+	Transport HTTPTransportOptions `yaml:"transport"`
+	TLS       HTTPTLSOptions       `yaml:"tls"`
+}
+
+type HTTPTransportOptions struct {
 	FollowRedirect bool `yaml:"followRedirect"`
 	MaxRedirects   int  `yaml:"maxRedirects"`
+}
+
+type HTTPTLSOptions struct {
+	CACertData         string `yaml:"caCertData"`
+	ClientCertData     string `yaml:"clientCertData"`
+	ClientKeyData      string `yaml:"clientKeyData"`
+	InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
+}
+
+func (o HTTPTLSOptions) ToTLSConfig() (*tls.Config, error) {
+	if o.CACertData == "" {
+		return &tls.Config{InsecureSkipVerify: o.InsecureSkipVerify}, nil //nolint:gosec
+	}
+
+	var clientCert []tls.Certificate
+	if o.ClientCertData != "" {
+		if o.ClientKeyData == "" {
+			return nil, errors.New("clientKeyData pem block not provided for Client certificate pair")
+		}
+
+		cert, err := tls.X509KeyPair([]byte(o.ClientCertData), []byte(o.ClientKeyData))
+		if err != nil {
+			return nil, err
+		}
+
+		clientCert = append(clientCert, cert)
+	}
+
+	pool := x509.NewCertPool()
+	pool.AppendCertsFromPEM([]byte(o.CACertData))
+
+	return &tls.Config{
+		Certificates:       clientCert,
+		RootCAs:            pool,
+		InsecureSkipVerify: o.InsecureSkipVerify, //nolint:gosec
+	}, nil
 }
 
 func HTTPConfigFactory() Config {
@@ -43,9 +87,11 @@ func HTTPActionFactory() Action {
 	return &HTTPAction{
 		ActionCore: ActionCore{},
 		Headers:    map[string]string{},
-		Options: HTTPActionOptions{
-			FollowRedirect: true,
-			MaxRedirects:   50,
+		Options: HTTPOptions{
+			Transport: HTTPTransportOptions{
+				FollowRedirect: true,
+				MaxRedirects:   50,
+			},
 		},
 	}
 }
@@ -99,6 +145,11 @@ func (a *HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
 	reqCtx := httpstat.WithHTTPStat(ctx, &result)
 	request = request.WithContext(reqCtx)
 
+	tlsConfig, err := a.Options.TLS.ToTLSConfig()
+	if err != nil {
+		return nil, err
+	}
+
 	client := http.Client{
 		Transport: &loghttp.Transport{
 			LogRequest: func(request *http.Request) {
@@ -113,14 +164,17 @@ func (a *HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
 					Object("stats", resultToLogObjectMarshaller(&result)).
 					Msgf("📥 %d %s", response.StatusCode, request.URL)
 			},
+			Transport: &http.Transport{
+				TLSClientConfig: tlsConfig,
+			},
 		},
 		Timeout: time.Duration(a.Timeout),
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
-			if !a.Options.FollowRedirect {
+			if !a.Options.Transport.FollowRedirect {
 				return fmt.Errorf("no redirect allowed for %s", req.URL.String())
 			}
 			nbRedirects := len(via)
-			if nbRedirects >= a.Options.MaxRedirects {
+			if nbRedirects >= a.Options.Transport.MaxRedirects {
 				return fmt.Errorf("stopped after %d redirects", nbRedirects)
 			}
 			return nil

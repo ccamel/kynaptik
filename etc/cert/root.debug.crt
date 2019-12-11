@@ -1,0 +1,45 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number:
+            a5:01:46:93:07:a0:3b:dc:36:81:4e:56:c7:81:4a:77
+    Signature Algorithm: ecdsa-with-SHA256
+        Issuer: O=Acme Co, CN=Root CA
+        Validity
+            Not Before: Dec 10 19:15:32 2019 GMT
+            Not After : Nov 16 19:15:32 2119 GMT
+        Subject: O=Acme Co, CN=Root CA
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub: 
+                    04:31:94:ca:cf:7a:59:76:ca:ac:b1:a7:1b:7e:76:
+                    b6:5b:48:f7:5b:ba:bd:e0:e4:47:1f:4b:1b:92:22:
+                    d4:a0:f9:3d:e3:2c:46:0a:b9:0b:c2:02:d1:de:f8:
+                    8b:d7:ec:f9:51:dc:61:7a:af:5a:07:3d:bf:d2:58:
+                    e6:d7:1d:e2:d3
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Certificate Sign
+            X509v3 Extended Key Usage: 
+                TLS Web Server Authentication
+            X509v3 Basic Constraints: critical
+                CA:TRUE
+    Signature Algorithm: ecdsa-with-SHA256
+         30:45:02:20:6a:9b:5d:75:46:3c:d5:ad:a0:d9:54:09:c2:14:
+         87:34:89:e3:d3:f2:c0:37:0a:1f:9c:4d:8b:54:c4:9d:73:ab:
+         02:21:00:b6:4a:d9:35:7b:89:c9:e1:8f:1f:a0:92:25:7f:c6:
+         b4:5e:6a:fe:0e:62:4c:2c:d2:e5:e4:58:50:6c:6e:87:23
+-----BEGIN CERTIFICATE-----
+MIIBgTCCASegAwIBAgIRAKUBRpMHoDvcNoFOVseBSncwCgYIKoZIzj0EAwIwJDEQ
+MA4GA1UEChMHQWNtZSBDbzEQMA4GA1UEAxMHUm9vdCBDQTAgFw0xOTEyMTAxOTE1
+MzJaGA8yMTE5MTExNjE5MTUzMlowJDEQMA4GA1UEChMHQWNtZSBDbzEQMA4GA1UE
+AxMHUm9vdCBDQTBZMBMGByqGSM49AgEGCCqGSM49AwEHA0IABDGUys96WXbKrLGn
+G352tltI91u6veDkRx9LG5Ii1KD5PeMsRgq5C8IC0d74i9fs+VHcYXqvWgc9v9JY
+5tcd4tOjODA2MA4GA1UdDwEB/wQEAwICBDATBgNVHSUEDDAKBggrBgEFBQcDATAP
+BgNVHRMBAf8EBTADAQH/MAoGCCqGSM49BAMCA0gAMEUCIGqbXXVGPNWtoNlUCcIU
+hzSJ49PywDcKH5xNi1TEnXOrAiEAtkrZNXuJyeGPH6CSJX/GtF5q/g5iTCzS5eRY
+UGxuhyM=
+-----END CERTIFICATE-----

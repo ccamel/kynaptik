@@ -1,0 +1,43 @@
+Certificate:
+    Data:
+        Version: 3 (0x2)
+        Serial Number: 4 (0x4)
+    Signature Algorithm: ecdsa-with-SHA256
+        Issuer: O=Acme Co, CN=Root CA
+        Validity
+            Not Before: Dec 10 19:15:32 2019 GMT
+            Not After : Nov 16 19:15:32 2119 GMT
+        Subject: O=Acme Co, CN=client_auth_test_cert
+        Subject Public Key Info:
+            Public Key Algorithm: id-ecPublicKey
+                Public-Key: (256 bit)
+                pub: 
+                    04:9d:83:78:73:a9:ca:c3:80:99:e1:0b:3c:fa:52:
+                    82:a3:ef:ab:2a:12:61:b7:71:89:7d:37:88:ed:27:
+                    b9:bf:b1:3a:5f:f1:b9:95:1d:77:0d:6c:cc:dd:0d:
+                    d8:38:01:ee:a3:27:9c:73:dd:79:c5:b8:8c:67:2d:
+                    f5:af:4e:84:75
+                ASN1 OID: prime256v1
+                NIST CURVE: P-256
+        X509v3 extensions:
+            X509v3 Key Usage: critical
+                Digital Signature
+            X509v3 Extended Key Usage: 
+                TLS Web Client Authentication
+            X509v3 Basic Constraints: critical
+                CA:FALSE
+    Signature Algorithm: ecdsa-with-SHA256
+         30:44:02:20:3e:79:52:02:57:72:7b:53:1e:db:fb:80:6f:73:
+         58:34:13:72:68:b8:0a:93:fa:67:de:83:07:60:c1:64:62:bb:
+         02:20:28:ef:39:62:00:0e:1b:b4:9c:92:1a:a3:b3:43:cf:f3:
+         cc:ac:b0:b6:c7:b5:9d:ae:f1:fc:2c:ce:38:c7:8f:d7
+-----BEGIN CERTIFICATE-----
+MIIBezCCASKgAwIBAgIBBDAKBggqhkjOPQQDAjAkMRAwDgYDVQQKEwdBY21lIENv
+MRAwDgYDVQQDEwdSb290IENBMCAXDTE5MTIxMDE5MTUzMloYDzIxMTkxMTE2MTkx
+NTMyWjAyMRAwDgYDVQQKEwdBY21lIENvMR4wHAYDVQQDDBVjbGllbnRfYXV0aF90
+ZXN0X2NlcnQwWTATBgcqhkjOPQIBBggqhkjOPQMBBwNCAASdg3hzqcrDgJnhCzz6
+UoKj76sqEmG3cYl9N4jtJ7m/sTpf8bmVHXcNbMzdDdg4Ae6jJ5xz3XnFuIxnLfWv
+ToR1ozUwMzAOBgNVHQ8BAf8EBAMCB4AwEwYDVR0lBAwwCgYIKwYBBQUHAwIwDAYD
+VR0TAQH/BAIwADAKBggqhkjOPQQDAgNHADBEAiA+eVICV3J7Ux7b+4Bvc1g0E3Jo
+uAqT+mfegwdgwWRiuwIgKO85YgAOG7Sckhqjs0PP88yssLbHtZ2u8fwszjjHj9c=
+-----END CERTIFICATE-----

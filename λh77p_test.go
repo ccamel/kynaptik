@@ -89,6 +89,61 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 	}
 }
 
+func httpSuccessfulGetWithTLSInvocationFixture() httpFixture {
+	port, err := freeport.GetFreePort()
+	So(err, ShouldBeNil)
+
+	rootPem, _ := ioutil.ReadFile("./etc/cert/root.pem")
+
+	return httpFixture{
+		ctx: context.Background(),
+		httpAction: HTTPAction{
+			ActionCore: ActionCore{
+				URI: fmt.Sprintf("https://localhost:%d/foo", port),
+			},
+			Method: "GET",
+			Options: HTTPOptions{
+				TLS: HTTPTLSOptions{
+					CACertData:         string(rootPem),
+					InsecureSkipVerify: false,
+				},
+			},
+		},
+		arrange: func(c C, ctx context.Context) func() {
+			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+			So(err, ShouldBeNil)
+
+			go func() {
+				err := http.ServeTLS(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+					c.So(r.URL.String(), ShouldEqual, "/foo")
+					c.So(r.Method, ShouldEqual, "GET")
+
+					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
+					_, _ = io.WriteString(w, "ok")
+				}), "./etc/cert/leaf.pem", "./etc/cert/leaf.key")
+				if err != nil {
+					fmt.Printf(err.Error())
+					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
+				}
+			}()
+			return func() {
+				err := listener.Close()
+				So(err, ShouldBeNil)
+			}
+		},
+		assert: func(res interface{}, err error) {
+			So(err, ShouldBeNil)
+			So(res, ShouldHaveSameTypeAs, &http.Response{})
+
+			So(res.(*http.Response).StatusCode, ShouldEqual, http.StatusOK)
+
+			body, err := ioutil.ReadAll(res.(*http.Response).Body)
+			So(err, ShouldBeNil)
+			So(string(body), ShouldEqual, `ok`)
+		},
+	}
+}
+
 func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
@@ -100,9 +155,11 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
 			},
 			Method: "GET",
-			Options: HTTPActionOptions{
-				FollowRedirect: true,
-				MaxRedirects:   5,
+			Options: HTTPOptions{
+				Transport: HTTPTransportOptions{
+					FollowRedirect: true,
+					MaxRedirects:   5,
+				},
 			},
 		},
 		arrange: func(c C, ctx context.Context) func() {
@@ -141,7 +198,7 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 	}
 }
 
-func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPActionOptions, errMessage string) func() httpFixture {
+func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPOptions, errMessage string) func() httpFixture {
 	return func() httpFixture {
 		port, err := freeport.GetFreePort()
 		So(err, ShouldBeNil)
@@ -232,9 +289,14 @@ func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []httpFixtureSupplier{
 			httpSuccessfulPostWithHeadersInvocationFixture,
+			httpSuccessfulGetWithTLSInvocationFixture,
 			httpSuccessfulGetWithRedirectInvocationFixture,
-			httpFailedGetWithRedirectInvocationFixtureProvider(HTTPActionOptions{FollowRedirect: false, MaxRedirects: 5}, "Get http://localhost:%[1]d/?q=0: no redirect allowed for http://localhost:%[1]d/?q=0"),
-			httpFailedGetWithRedirectInvocationFixtureProvider(HTTPActionOptions{FollowRedirect: true, MaxRedirects: 5}, "Get http://localhost:%[1]d/?q=0: stopped after 5 redirects"),
+			httpFailedGetWithRedirectInvocationFixtureProvider(
+				HTTPOptions{Transport: HTTPTransportOptions{FollowRedirect: false, MaxRedirects: 5}},
+				"Get http://localhost:%[1]d/?q=0: no redirect allowed for http://localhost:%[1]d/?q=0"),
+			httpFailedGetWithRedirectInvocationFixtureProvider(
+				HTTPOptions{Transport: HTTPTransportOptions{FollowRedirect: true, MaxRedirects: 5}},
+				"Get http://localhost:%[1]d/?q=0: stopped after 5 redirects"),
 			httpTimeoutInvocationFixture,
 		}
 
@@ -269,14 +331,13 @@ func TestHttpActionFactory(t *testing.T) {
 			So(action.(*HTTPAction).URI, ShouldEqual, "")
 			So(action.(*HTTPAction).Headers, ShouldResemble, map[string]string{})
 			So(action.(*HTTPAction).Body, ShouldEqual, "")
-			So(action.(*HTTPAction).Options.MaxRedirects, ShouldEqual, 50)
-			So(action.(*HTTPAction).Options.FollowRedirect, ShouldEqual, true)
+			So(action.(*HTTPAction).Options.Transport.MaxRedirects, ShouldEqual, 50)
+			So(action.(*HTTPAction).Options.Transport.FollowRedirect, ShouldEqual, true)
 		})
 	})
 }
 
 func TestHttpValidateAction(t *testing.T) {
-
 	Convey("Validate() shall validate correctly the HTTPAction", t, func(c C) {
 		cases := []struct {
 			description   string
