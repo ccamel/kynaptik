@@ -42,6 +42,12 @@ func TestRenderTemplatedString(t *testing.T) {
 				expected: "BAR!",
 			},
 			{
+				name:     "expandenv",
+				template: `{{ "Hello ${FOO}!" | expandenv }}`,
+				ctx:      map[string]interface{}{},
+				expected: "Hello BAR!",
+			},
+			{
 				name:     "url-path-escape",
 				template: "http://localhost:1234/{{ urlPathEscape .name }}",
 				ctx: map[string]interface{}{
