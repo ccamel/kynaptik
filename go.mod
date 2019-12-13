@@ -8,10 +8,14 @@ require (
 	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
+	github.com/go-check/check v0.0.0-20190902080502-41f04d3bba15 // indirect
+	github.com/gorilla/websocket v1.4.1 // indirect
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/justinas/alice v1.2.0
+	github.com/kr/pretty v0.1.0 // indirect
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
 	github.com/motemen/go-nuts v0.0.0-20190725124253-1d2432db96b0
+	github.com/nlopes/slack v0.6.0
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/rs/zerolog v1.17.2
 	github.com/smartystreets/goconvey v1.6.4

@@ -82,6 +82,12 @@ func logIncomingRequestHandler() func(next http.Handler) http.Handler {
 				Msg("⚙️ λ invoked")
 
 			Ͱ.ServeHTTP(w, r)
+
+			hlog.
+				FromRequest(r).
+				Info().
+				Object("request", requestToLogObjectMarshaller(r)).
+				Msg("🏁️ λ done")
 		})
 	}
 }
