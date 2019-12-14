@@ -72,7 +72,7 @@ func invokeλ(
 		ServeHTTP(w, r)
 }
 
-func logIncomingRequestHandler() func(next http.Handler) http.Handler {
+func logIncomingRequestHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			hlog.
@@ -86,7 +86,7 @@ func logIncomingRequestHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(next http.Handler) http.Handler {
+func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			configName := "function-spec.yml"
@@ -148,7 +148,7 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 	}
 }
 
-func loadSecretHandler(fs afero.Fs) func(next http.Handler) http.Handler {
+func loadSecretHandler(fs afero.Fs) alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resourceName := "function-secret.yml"
@@ -202,7 +202,7 @@ func loadSecretHandler(fs afero.Fs) func(next http.Handler) http.Handler {
 	}
 }
 
-func checkContentLengthHandler() func(next http.Handler) http.Handler {
+func checkContentLengthHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			maxBodySize := r.Context().Value(ctxKeyConfig).(Config).MaxBodySize
@@ -223,7 +223,7 @@ func checkContentLengthHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func checkContentTypeHandler() func(next http.Handler) http.Handler {
+func checkContentTypeHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			contentType := r.Header.Get("Content-type")
@@ -258,7 +258,7 @@ func checkContentTypeHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func parsePreConditionHandler() func(next http.Handler) http.Handler {
+func parsePreConditionHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			condition := r.Context().Value(ctxKeyConfig).(Config).PreCondition
@@ -286,7 +286,7 @@ func parsePreConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func parsePostConditionHandler() func(next http.Handler) http.Handler {
+func parsePostConditionHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			condition := r.Context().Value(ctxKeyConfig).(Config).PostCondition
@@ -314,7 +314,7 @@ func parsePostConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func parsePayloadHandler() func(next http.Handler) http.Handler {
+func parsePayloadHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			maxBodySize := r.Context().Value(ctxKeyConfig).(Config).MaxBodySize
@@ -368,7 +368,7 @@ func parsePayloadHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func buildEnvironmentHandler() func(next http.Handler) http.Handler {
+func buildEnvironmentHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			env := environment{
@@ -389,7 +389,7 @@ func buildEnvironmentHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func matchPreConditionHandler() func(next http.Handler) http.Handler {
+func matchPreConditionHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			program := r.Context().Value(ctxKeyPreConditionProgram).(*vm.Program)
@@ -430,7 +430,7 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func buildActionHandler(actionFactory ActionFactory) func(next http.Handler) http.Handler {
+func buildActionHandler(actionFactory ActionFactory) alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			actionSpec := r.Context().Value(ctxKeyConfig).(Config).Action
@@ -475,7 +475,7 @@ func buildActionHandler(actionFactory ActionFactory) func(next http.Handler) htt
 	}
 }
 
-func matchPostConditionHandler() func(next http.Handler) http.Handler {
+func matchPostConditionHandler() alice.Constructor{
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			Ͱ.ServeHTTP(w, r)
