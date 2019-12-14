@@ -166,6 +166,7 @@ type protoAction struct {
 	ActionCore `yaml:",inline"`
 	Param1     string `yaml:"param1" validate:"nonzero,min=3"`
 	Param2     int    `yaml:"param2"`
+	Param3     string `json:"paramjson3"` // goccy/go-yaml supports json tags as well
 
 	validate func(a protoAction) error
 	doAction func(a protoAction, ctx context.Context) (interface{}, error)
@@ -252,7 +253,7 @@ action
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"yaml: line 6: could not find expected ':'","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:1] unexpected key name\n   2 | \n   3 | preCondition: |\n   4 |  true == true\n\u003e  5 | \n   6 | action\n   7 |  uri: 'null://'\n      ^\n","status":"error"}`)
 	}
 
 	return f
@@ -282,7 +283,7 @@ b
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-secret"},"message":"yaml: unmarshal errors:\n  line 2: cannot unmarshal !!str `+"`a b`"+` into map[string]interface {}","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-secret"},"message":"String node doesn't MapNode","status":"error"}`)
 	}
 
 	return f
@@ -359,7 +360,7 @@ action: |
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"yaml: unmarshal errors:\n  line 1: cannot unmarshal !!str `+"`bad`"+` into main.protoAction","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"String node doesn't MapNode","status":"error"}`)
 	}
 
 	return f
@@ -560,7 +561,6 @@ func wrongTypePreConditionFixture() engineFixture {
 	f.config = `
 preCondition: |
   data.foo
-
 action: |
   uri: 'null://'
 `
@@ -831,6 +831,7 @@ action: |
   uri: 'http://127.0.0.1?id={{if eq .data.firstName "John"}}Rmlyc3Qgb3B0aW9u={{else}}U2Vjb25kIG9wdGlvbg=={{end}}'
   param1: '{{.data.firstName}} {{.data.lastName}}'
   param2: 14
+  paramjson3: test
 
 postCondition: |
   response == "ok"
@@ -842,6 +843,8 @@ postCondition: |
 		So(action.URI, ShouldEqual, "http://127.0.0.1?id=Rmlyc3Qgb3B0aW9u=")
 		So(action.Param1, ShouldEqual, "John Doe")
 		So(action.Param2, ShouldEqual, 14)
+		So(action.Param3, ShouldEqual, "test")
+
 		return "ok", nil
 	}
 	f.assert = func(rr *httptest.ResponseRecorder) {
