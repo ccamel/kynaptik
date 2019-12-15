@@ -6,6 +6,8 @@ import (
 	"net/url"
 )
 
+// SchemeValidate ensures the given field, which is a string, is an URL with the specified
+// scheme.
 func SchemeValidate(fl validator.FieldLevel) bool {
 	uri, err := url.Parse(fl.Field().String())
 
