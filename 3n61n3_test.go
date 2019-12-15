@@ -30,8 +30,6 @@ type engineFixture struct {
 	// fnReq represents the incoming request
 	secret string
 	fnReq  *http.Request
-	// actionValidate is the validation function for the action
-	actionValidate func(action protoAction) error
 	// actionBehaviour is the mocked behaviour of the action
 	actionBehaviour func(action protoAction, ctx context.Context) (interface{}, error)
 	// arrange is a function which initializes the fixture and in returns provides a function which finalizes (clean)
@@ -150,7 +148,6 @@ func actDefault(f engineFixture) *httptest.ResponseRecorder {
 				},
 				func() Action {
 					return &protoAction{
-						validate: f.actionValidate,
 						doAction: f.actionBehaviour,
 					}
 				})
@@ -163,18 +160,17 @@ func actDefault(f engineFixture) *httptest.ResponseRecorder {
 type engineFixtureSupplier func() engineFixture
 
 type protoAction struct {
-	ActionCore `yaml:",inline"`
-	Param1     string `yaml:"param1" validate:"nonzero,min=3"`
-	Param2     int    `yaml:"param2"`
-	Param3     string `json:"paramjson3"` // goccy/go-yaml supports json tags as well
+	URI    string `yaml:"uri" validate:"required,uri,scheme=https|scheme=http|scheme=null"`
+	Param1 string `yaml:"param1" validate:"required,min=3"`
+	Param2 int    `yaml:"param2"`
+	Param3 string `json:"paramjson3"` // goccy/go-yaml supports json tags as well
 
-	validate func(a protoAction) error
 	doAction func(a protoAction, ctx context.Context) (interface{}, error)
 }
 
-func (a protoAction) Validate() error                                   { return a.validate(a) }
 func (a protoAction) DoAction(ctx context.Context) (interface{}, error) { return a.doAction(a, ctx) }
 func (a protoAction) MarshalZerologObject(e *zerolog.Event)             { e.Str("uri", a.URI) }
+func (a protoAction) GetURI() string                                    { return a.URI }
 
 func noDirectoryForConfigurationFixture() engineFixture {
 	req, err := http.NewRequest("GET", "/", nil)
@@ -307,7 +303,7 @@ action:
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"Action: zero value","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:7] Key: 'Config.Action' Error:Field validation for 'Action' failed on the 'min' tag\n\u003e  5 | null\n            ^\n","status":"error"}`)
 	}
 
 	return f
@@ -321,21 +317,18 @@ func invalidActionFixture() engineFixture {
 
 	f.appFS = afero.NewMemMapFs()
 	f.fnReq = req
-	f.actionValidate = func(action protoAction) error {
-		return fmt.Errorf("Method: zero value")
-	}
 	f.config = `
 preCondition: |
  true == true
 
 action: |
-  uri: 'null://'
+  uri: 'bad://'
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"Method: zero value","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"[1:6] Key: 'protoAction.URI' Error:Field validation for 'URI' failed on the 'scheme=https|scheme=http|scheme=null' tag\nKey: 'protoAction.Param1' Error:Field validation for 'Param1' failed on the 'required' tag\n\u003e  1 | uri: 'bad://'\n           ^\n","status":"error"}`)
 	}
 
 	return f
@@ -354,7 +347,7 @@ preCondition: |
  true == true
 
 action: |
-  bad
+  bad action
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
@@ -647,7 +640,6 @@ postCondition: |
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
-	f.actionValidate = func(action protoAction) error { return nil }
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
@@ -677,7 +669,6 @@ postCondition: |
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
-	f.actionValidate = func(action protoAction) error { return nil }
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
@@ -707,7 +698,6 @@ postCondition: |
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
-	f.actionValidate = func(action protoAction) error { return nil }
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadGateway)
@@ -734,7 +724,6 @@ action: |
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
-	f.actionValidate = func(action protoAction) error { return nil }
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -803,7 +792,6 @@ action: |
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
-	f.actionValidate = func(action protoAction) error { return nil }
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
 		return nil, fmt.Errorf("net/http: request canceled")
 	}
@@ -838,7 +826,6 @@ postCondition: |
 `
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
 	f.act = actDefault
-	f.actionValidate = func(action protoAction) error { return nil }
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
 		So(action.URI, ShouldEqual, "http://127.0.0.1?id=Rmlyc3Qgb3B0aW9u=")
 		So(action.Param1, ShouldEqual, "John Doe")
@@ -850,6 +837,51 @@ postCondition: |
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusOK)
 		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}`)
+	}
+
+	return f
+}
+
+func invocationWithTimeoutFixture() engineFixture {
+	req, err := http.NewRequest("GET", "/", strings.NewReader(`{  "firstName": "John", "lastName": "Doe" }`))
+	So(err, ShouldBeNil)
+
+	f := engineFixture{}
+
+	f.appFS = afero.NewMemMapFs()
+	f.fnReq = req
+	f.config = `
+timeout: 200
+preCondition: |
+  data.lastName == "Doe"
+
+action: |
+  uri: 'http://127.0.0.1?id={{if eq .data.firstName "John"}}Rmlyc3Qgb3B0aW9u={{else}}U2Vjb25kIG9wdGlvbg=={{end}}'
+  param1: '{{.data.firstName}} {{.data.lastName}}'
+  param2: 14
+  paramjson3: test
+
+postCondition: |
+  response == "ok"
+`
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.act = actDefault
+	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
+		So(action.URI, ShouldEqual, "http://127.0.0.1?id=Rmlyc3Qgb3B0aW9u=")
+		So(action.Param1, ShouldEqual, "John Doe")
+		So(action.Param2, ShouldEqual, 14)
+		So(action.Param3, ShouldEqual, "test")
+
+		select {
+		case <-ctx.Done():
+			return "ko", ctx.Err()
+		case <-time.After(1 * time.Second):
+			return "ok", nil // this is not the expected case
+		}
+	}
+	f.assert = func(rr *httptest.ResponseRecorder) {
+		So(rr.Code, ShouldEqual, http.StatusBadGateway)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"do-action"},"message":"context deadline exceeded","status":"error"}`)
 	}
 
 	return f
@@ -881,7 +913,6 @@ password: 'c+KCrGNy4oKsdA=='
 
 	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig, arrangeSecret)
 	f.act = actDefault
-	f.actionValidate = func(action protoAction) error { return nil }
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
 		So(action.Param1, ShouldEqual, "admin:s€cr€t")
 
@@ -923,6 +954,7 @@ func TestEngine(t *testing.T) {
 			badInvocationFixture,
 			successfulInvocationFixture,
 			successfulInvocationWithSecretFixture,
+			invocationWithTimeoutFixture,
 			crappyCallerFixture,
 		}
 
