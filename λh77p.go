@@ -48,6 +48,7 @@ func (o HTTPTLSOptions) ToTLSConfig() (*tls.Config, error) {
 	}
 
 	var clientCert []tls.Certificate
+
 	if o.ClientCertData != "" {
 		if o.ClientKeyData == "" {
 			return nil, errors.New("clientKeyData pem block not provided for Client certificate pair")
@@ -119,13 +120,17 @@ func (a *HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for k, v := range a.Headers {
 		request.Header.Set(k, v)
 	}
+
 	var result httpstat.Result
+
 	defer func() {
 		result.End(time.Now())
 	}()
+
 	reqCtx := httpstat.WithHTTPStat(ctx, &result)
 	request = request.WithContext(reqCtx)
 

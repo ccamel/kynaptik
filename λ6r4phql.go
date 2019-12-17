@@ -89,15 +89,19 @@ func (a GraphQLAction) DoAction(ctx context.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for k, v := range a.Headers {
 		request.Header.Set(k, v)
 	}
+
 	request.Header.Set("Content-Type", "application/json")
 
 	var result httpstat.Result
+
 	defer func() {
 		result.End(time.Now())
 	}()
+
 	reqCtx := httpstat.WithHTTPStat(ctx, &result)
 	request = request.WithContext(reqCtx)
 
