@@ -33,5 +33,6 @@ linters:
   disable:
     - gochecknoglobals
     - gochecknoinits
+    - godox
 #    - lll
   fast: false
