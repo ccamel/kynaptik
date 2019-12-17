@@ -18,6 +18,6 @@ require (
 	github.com/spf13/afero v1.2.2
 	github.com/tcnksm/go-httpstat v0.2.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
-	gopkg.in/go-playground/validator.v9 v9.30.2
+	gopkg.in/go-playground/validator.v10 v10.0.1
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
