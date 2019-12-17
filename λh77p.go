@@ -18,7 +18,7 @@ import (
 )
 
 type HTTPAction struct {
-	URI     string            `yaml:"uri" validator:"required,uri,scheme=graphql|graphqls"`
+	URI     string            `yaml:"uri" validate:"required,uri,scheme=graphql|scheme=graphqls"`
 	Method  string            `yaml:"method" validate:"required,min=3"`
 	Headers map[string]string `yaml:"headers"`
 	Body    string            `yaml:"body"`

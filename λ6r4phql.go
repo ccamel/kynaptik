@@ -16,7 +16,7 @@ import (
 )
 
 type GraphQLAction struct {
-	URI           string                 `yaml:"uri" validator:"required,uri,scheme=graphql|graphqls"`
+	URI           string                 `yaml:"uri" validate:"required,uri,scheme=graphql|scheme=graphqls"`
 	Headers       map[string]string      `yaml:"headers"`
 	Query         string                 `yaml:"query" validate:"min=2"`
 	Variables     map[string]interface{} `yaml:"variables"`
