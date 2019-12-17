@@ -37,9 +37,7 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 	return httpFixture{
 		ctx: context.Background(),
 		httpAction: HTTPAction{
-			ActionCore: ActionCore{
-				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
-			},
+			URI:    fmt.Sprintf("http://127.0.0.1:%d", port),
 			Method: "POST",
 			Headers: map[string]string{
 				"Content-Type": "text/plain",
@@ -98,9 +96,7 @@ func httpSuccessfulGetWithTLSInvocationFixture() httpFixture {
 	return httpFixture{
 		ctx: context.Background(),
 		httpAction: HTTPAction{
-			ActionCore: ActionCore{
-				URI: fmt.Sprintf("https://localhost:%d/foo", port),
-			},
+			URI:    fmt.Sprintf("https://localhost:%d/foo", port),
 			Method: "GET",
 			Options: HTTPOptions{
 				TLS: HTTPTLSOptions{
@@ -151,9 +147,7 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 	return httpFixture{
 		ctx: context.Background(),
 		httpAction: HTTPAction{
-			ActionCore: ActionCore{
-				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
-			},
+			URI:    fmt.Sprintf("http://127.0.0.1:%d", port),
 			Method: "GET",
 			Options: HTTPOptions{
 				Transport: HTTPTransportOptions{
@@ -206,9 +200,7 @@ func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPOptions, err
 		return httpFixture{
 			ctx: context.Background(),
 			httpAction: HTTPAction{
-				ActionCore: ActionCore{
-					URI: fmt.Sprintf("http://127.0.0.1:%d", port),
-				},
+				URI:     fmt.Sprintf("http://127.0.0.1:%d", port),
 				Method:  "GET",
 				Options: options,
 			},
@@ -239,52 +231,6 @@ func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPOptions, err
 	}
 }
 
-func httpTimeoutInvocationFixture() httpFixture {
-	port, err := freeport.GetFreePort()
-	So(err, ShouldBeNil)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
-
-	return httpFixture{
-		ctx: ctx,
-		httpAction: HTTPAction{
-			ActionCore: ActionCore{
-				URI: fmt.Sprintf("http://127.0.0.1:%d", port),
-			},
-			Method:  "GET",
-			Headers: map[string]string{},
-		},
-		arrange: func(c C, ctx context.Context) func() {
-			listener, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
-			So(err, ShouldBeNil)
-
-			go func() {
-				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-					select {
-					case <-ctx.Done():
-						// ok
-					case <-time.After(5 * time.Second):
-						c.So("Should not be here", ShouldBeNil)
-					}
-				}))
-				if err != nil {
-					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
-				}
-			}()
-			return func() {
-				err = listener.Close()
-				So(err, ShouldBeNil)
-
-				cancel()
-			}
-		},
-		assert: func(res interface{}, err error) {
-			So(err, ShouldNotBeNil)
-			So(err.Error(), ShouldEqual, fmt.Sprintf("Get http://127.0.0.1:%d: context deadline exceeded", port))
-		},
-	}
-}
-
 func TestHttpFunction(t *testing.T) {
 	Convey("Considering the Http function", t, func(c C) {
 		fixtures := []httpFixtureSupplier{
@@ -297,7 +243,6 @@ func TestHttpFunction(t *testing.T) {
 			httpFailedGetWithRedirectInvocationFixtureProvider(
 				HTTPOptions{Transport: HTTPTransportOptions{FollowRedirect: true, MaxRedirects: 5}},
 				"Get http://localhost:%[1]d/?q=0: stopped after 5 redirects"),
-			httpTimeoutInvocationFixture,
 		}
 
 		for k, fixtureSupplier := range fixtures {
@@ -329,61 +274,19 @@ func TestHttpActionFactory(t *testing.T) {
 
 			So(action, ShouldHaveSameTypeAs, &HTTPAction{})
 			So(action.(*HTTPAction).URI, ShouldEqual, "")
+			So(action.(*HTTPAction).GetURI(), ShouldEqual, "")
 			So(action.(*HTTPAction).Headers, ShouldResemble, map[string]string{})
 			So(action.(*HTTPAction).Body, ShouldEqual, "")
 			So(action.(*HTTPAction).Options.Transport.MaxRedirects, ShouldEqual, 50)
 			So(action.(*HTTPAction).Options.Transport.FollowRedirect, ShouldEqual, true)
 		})
-	})
-}
 
-func TestHttpValidateAction(t *testing.T) {
-	Convey("Validate() shall validate correctly the HTTPAction", t, func(c C) {
-		cases := []struct {
-			description   string
-			action        HTTPAction
-			expectedError string
-		}{
-			{
-				"empty action",
-				HTTPAction{},
-				"ActionCore.URI: zero value",
-			},
-			{
-				"invalid URL",
-				HTTPAction{
-					ActionCore: ActionCore{URI: "%12334%"},
-					Method:     "GET",
-				},
-				`parse %12334%: invalid URL escape "%"`,
-			},
-			{
-				"invalid scheme",
-				HTTPAction{
-					ActionCore: ActionCore{URI: "ftp://nowhere?p=foo"},
-					Method:     "GET",
-				},
-				`unsupported scheme ftp. Only http(s) supported`,
-			},
-			{
-				"valid",
-				HTTPAction{
-					ActionCore: ActionCore{URI: "http://nowhere/"},
-					Method:     "GET",
-				},
-				"",
-			},
-		}
-		for i, c := range cases {
-			Convey(fmt.Sprintf("The test case %d (%s) shall return %s", i, c.description, c.expectedError), func() {
-				err := c.action.Validate()
-				msg := ""
-				if err != nil {
-					msg = err.Error()
-				}
-				So(msg, ShouldEqual, c.expectedError)
-			})
-		}
+		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
+			log.
+				Info().
+				Object("action", action).
+				Msg("action built")
+		})
 	})
 }
 

@@ -82,9 +82,9 @@ func EvaluatePredicateExpression(predicate *vm.Program, ctx map[string]interface
 // FindFilename search (recursively) for the given filename in the given root folder, returning the empty string
 // if noy found.
 func FindFilename(fs afero.Fs, root, filename string) string {
-	fsutil := &afero.Afero{Fs: fs}
-
 	var configPath string
+
+	fsutil := &afero.Afero{Fs: fs}
 	_ = fsutil.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err

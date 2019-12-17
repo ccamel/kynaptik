@@ -32,7 +32,6 @@ The `action` yaml element supports the following elements:
 | `query` | `graphQL` query (textual). | ✓ | | [GraphQL query](https://graphql.org/learn/queries/) to send. |
 | `variables` | name/value `map`. |  |  | [GraphQL variables](https://graphql.org/learn/queries/#variables) to use. |
 | `operationName` | `string` |  |  | The name of the operation - only required if multiple operations are present in the query. |
-| `timeout` | `positive integer`. |  |  | Specifies the timeout for waiting for data (in ms). No timeout by default. |
 
 ## Evaluation environment
 
@@ -48,12 +47,12 @@ metadata:
   name: kynaptik-graphql-configmap
 data:
   function-spec: |
+    timeout: 10000
     preCondition: |
       data.name != ""
 
     action: |
-      uri: 'graphqls://graphql-pokemon.now.sh/?'      
-      timeout: 10000            
+      uri: 'graphqls://graphql-pokemon.now.sh/?'                        
       query: |
         query ViewPokemon($name: String) {
           pokemon(name: $name) {

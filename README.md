@@ -60,12 +60,13 @@ metadata:
   name: kynaptik-http-configmap
 data:
   function-spec.yml: |
+    timeout: 10000
+
     preCondition: |
       data.foo == "bar"
 
     action: |
-      uri: 'https://foo-bar'      
-      timeout: 10000
+      uri: 'https://foo-bar'            
       method: GET
       headers:
         Content-Type: application/json
@@ -94,6 +95,8 @@ The yaml configuration has the following structure:
 -   `postCondition`: optional, specifies the condition (textual) to be satisfied for the response of the call be considered successful.
 
 -   `maxBodySize`: optional, defines the maximum acceptable size (in bytes) of the incoming request body. No limit by default.
+
+-   `timeout`: optional, specifies the timeout for waiting for data (in ms). No timeout by default.
 
 The condition (either `preCondition` or `postCondition`) is an expression (text) compliant with the syntax of 
 [antonmedv/expr](https://github.com/antonmedv/expr/blob/master/docs/Language-Definition.md) engine.

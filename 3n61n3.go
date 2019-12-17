@@ -8,6 +8,9 @@ import (
 	"mime"
 	"net/http"
 	"strings"
+	"time"
+
+	"gopkg.in/go-playground/validator.v9"
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
@@ -16,26 +19,12 @@ import (
 	"github.com/goccy/go-yaml"
 	"github.com/justinas/alice"
 	"github.com/rs/zerolog/hlog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/afero"
-	"gopkg.in/validator.v2"
 )
 
 const mediaTypeJSON = "application/json"
 
 type environment map[string]interface{}
-
-type ctxKey string
-
-var (
-	ctxKeyConfig               = ctxKey("config")
-	ctxKeySecret               = ctxKey("secret")
-	ctxKeyPreConditionProgram  = ctxKey("pre-condition-program")
-	ctxKeyPostConditionProgram = ctxKey("post-condition-program")
-	ctxKeyData                 = ctxKey("data")
-	ctxKeyEnv                  = ctxKey("environment")
-	ctxKeyAction               = ctxKey("action")
-)
 
 func invokeλ(
 	w http.ResponseWriter,
@@ -44,16 +33,10 @@ func invokeλ(
 	configFactory ConfigFactory,
 	actionFactory ActionFactory,
 ) {
-	l :=
-		log.Logger.
-			With().
-			Str("λ", "http").
-			Logger()
-
 	alice.
 		New(
-			hlog.NewHandler(l),
 			hlog.RequestIDHandler("req-id", "Request-Id"),
+			installValidatorHandler(),
 			logIncomingRequestHandler(),
 			loadConfigurationHandler(fs, configFactory),
 			loadSecretHandler(fs),
@@ -72,7 +55,20 @@ func invokeλ(
 		ServeHTTP(w, r)
 }
 
-func logIncomingRequestHandler() func(next http.Handler) http.Handler {
+func installValidatorHandler() alice.Constructor {
+	return func(Ͱ http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			validate := validator.New()
+			_ = validate.RegisterValidation("scheme", SchemeValidate)
+
+			r = r.WithContext(context.WithValue(r.Context(), ctxKeyValidate, validate))
+
+			Ͱ.ServeHTTP(w, r)
+		})
+	}
+}
+
+func logIncomingRequestHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			hlog.
@@ -86,12 +82,13 @@ func logIncomingRequestHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(next http.Handler) http.Handler {
+func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			configName := "function-spec.yml"
 			folder := "configs"
 			namespace := r.Header.Get("X-Fission-Function-Namespace")
+			validate := r.Context().Value(ctxKeyValidate).(*validator.Validate)
 
 			in, err := OpenResource(fs, folder, namespace, configName)
 			defer func() {
@@ -115,17 +112,7 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 			}
 
 			c := configFactory()
-			if err := yaml.NewDecoder(in).Decode(&c); err != nil {
-				_, _ = jsend.
-					Wrap(w).
-					Status(http.StatusServiceUnavailable).
-					Message(err.Error()).
-					Data(&ResponseData{"load-configuration"}).
-					Send()
-				return
-			}
-
-			if err := validator.Validate(c); err != nil {
+			if err := yaml.NewDecoder(in, yaml.Validator(validate)).Decode(&c); err != nil {
 				_, _ = jsend.
 					Wrap(w).
 					Status(http.StatusServiceUnavailable).
@@ -148,7 +135,7 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) func(nex
 	}
 }
 
-func loadSecretHandler(fs afero.Fs) func(next http.Handler) http.Handler {
+func loadSecretHandler(fs afero.Fs) alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			resourceName := "function-secret.yml"
@@ -202,7 +189,7 @@ func loadSecretHandler(fs afero.Fs) func(next http.Handler) http.Handler {
 	}
 }
 
-func checkContentLengthHandler() func(next http.Handler) http.Handler {
+func checkContentLengthHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			maxBodySize := r.Context().Value(ctxKeyConfig).(Config).MaxBodySize
@@ -223,7 +210,7 @@ func checkContentLengthHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func checkContentTypeHandler() func(next http.Handler) http.Handler {
+func checkContentTypeHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			contentType := r.Header.Get("Content-type")
@@ -258,7 +245,7 @@ func checkContentTypeHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func parsePreConditionHandler() func(next http.Handler) http.Handler {
+func parsePreConditionHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			condition := r.Context().Value(ctxKeyConfig).(Config).PreCondition
@@ -286,7 +273,7 @@ func parsePreConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func parsePostConditionHandler() func(next http.Handler) http.Handler {
+func parsePostConditionHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			condition := r.Context().Value(ctxKeyConfig).(Config).PostCondition
@@ -314,7 +301,7 @@ func parsePostConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func parsePayloadHandler() func(next http.Handler) http.Handler {
+func parsePayloadHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			maxBodySize := r.Context().Value(ctxKeyConfig).(Config).MaxBodySize
@@ -368,7 +355,7 @@ func parsePayloadHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func buildEnvironmentHandler() func(next http.Handler) http.Handler {
+func buildEnvironmentHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			env := environment{
@@ -389,7 +376,7 @@ func buildEnvironmentHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func matchPreConditionHandler() func(next http.Handler) http.Handler {
+func matchPreConditionHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			program := r.Context().Value(ctxKeyPreConditionProgram).(*vm.Program)
@@ -430,10 +417,11 @@ func matchPreConditionHandler() func(next http.Handler) http.Handler {
 	}
 }
 
-func buildActionHandler(actionFactory ActionFactory) func(next http.Handler) http.Handler {
+func buildActionHandler(actionFactory ActionFactory) alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			actionSpec := r.Context().Value(ctxKeyConfig).(Config).Action
+			validate := r.Context().Value(ctxKeyValidate).(*validator.Validate)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 			action := actionFactory()
 
@@ -452,12 +440,7 @@ func buildActionHandler(actionFactory ActionFactory) func(next http.Handler) htt
 				return
 			}
 
-			if err := yaml.NewDecoder(in).Decode(action); err != nil {
-				sendError(err)
-				return
-			}
-
-			if err := action.Validate(); err != nil {
+			if err := yaml.NewDecoder(in, yaml.Validator(validate)).Decode(action); err != nil {
 				sendError(err)
 				return
 			}
@@ -475,7 +458,7 @@ func buildActionHandler(actionFactory ActionFactory) func(next http.Handler) htt
 	}
 }
 
-func matchPostConditionHandler() func(next http.Handler) http.Handler {
+func matchPostConditionHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			Ͱ.ServeHTTP(w, r)
@@ -538,8 +521,17 @@ func matchPostConditionHandler() func(next http.Handler) http.Handler {
 func doActionHandler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		action := r.Context().Value(ctxKeyAction).(Action)
+		config := r.Context().Value(ctxKeyConfig).(Config)
 
-		response, err := action.DoAction(r.Context())
+		ctx := r.Context()
+		cancel := func() {}
+
+		if config.Timeout > 0 {
+			ctx, cancel = context.WithTimeout(ctx, config.Timeout*time.Millisecond)
+		}
+		defer cancel()
+
+		response, err := action.DoAction(ctx)
 
 		if err != nil {
 			hlog.

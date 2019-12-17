@@ -22,7 +22,6 @@ The `action` yaml element supports the following elements:
 | `options:`<br/>&nbsp;&nbsp;`tls:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`clientCertData` | `string`. |  |  | PEM encoded data of the public key. |
 | `options:`<br/>&nbsp;&nbsp;`tls:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`clientKeyData` | `string`. |  |  | PEM encoded data of the private key. |
 | `options:`<br/>&nbsp;&nbsp;`tls:`<br/>&nbsp;&nbsp;&nbsp;&nbsp;`insecureSkipVerify` | `boolean`. |  | `false` | Controls whether the client verifies the server's certificate chain and host name. :warning: if `true`, TLS is susceptible to man-in-the-middle attacks. |
-| `timeout` | `positive integer`. |  |  | Specifies the timeout for waiting for data (in ms). No timeout by default. |
 
 ## Evaluation environment
 
@@ -38,6 +37,7 @@ metadata:
   name: kynaptik-http-configmap
 data:
   function-spec.yml: |
+    timeout: 10000
     preCondition: |
       data.message != ""
 

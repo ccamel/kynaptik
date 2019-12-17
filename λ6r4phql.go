@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
-	"fmt"
 	"net/http"
-	"net/url"
 	"strings"
 	"time"
 
@@ -15,13 +13,12 @@ import (
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/afero"
 	"github.com/tcnksm/go-httpstat"
-	"gopkg.in/validator.v2"
 )
 
 type GraphQLAction struct {
-	ActionCore    `yaml:",inline"`
+	URI           string                 `yaml:"uri" validator:"required,uri,scheme=graphql|graphqls"`
 	Headers       map[string]string      `yaml:"headers"`
-	Query         string                 `yaml:"query" validate:"nonzero"`
+	Query         string                 `yaml:"query" validate:"min=2"`
 	Variables     map[string]interface{} `yaml:"variables"`
 	OperationName string                 `yaml:"operationName"`
 }
@@ -38,15 +35,18 @@ func GraphQLConfigFactory() Config {
 
 func GraphQLActionFactory() Action {
 	return &GraphQLAction{
-		ActionCore: ActionCore{},
-		Headers:    map[string]string{},
-		Variables:  map[string]interface{}{},
+		Headers:   map[string]string{},
+		Variables: map[string]interface{}{},
 	}
 }
 
 // GraphqlEntryPoint is the entry point for this Fission function
 func GraphqlEntryPoint(w http.ResponseWriter, r *http.Request) {
 	invokeλ(w, r, afero.NewOsFs(), GraphQLConfigFactory, GraphQLActionFactory)
+}
+
+func (a GraphQLAction) GetURI() string {
+	return a.URI
 }
 
 func (a GraphQLAction) MarshalZerologObject(e *zerolog.Event) {
@@ -59,23 +59,6 @@ func (a GraphQLAction) MarshalZerologObject(e *zerolog.Event) {
 		})).
 		Str("query", a.Query).
 		Dict("variables", zerolog.Dict().Fields(a.Variables))
-}
-
-func (a GraphQLAction) Validate() error {
-	if err := validator.Validate(&a); err != nil {
-		return err
-	}
-
-	u, err := url.Parse(a.URI)
-	if err != nil {
-		return err
-	}
-
-	if u.Scheme != "graphql" && u.Scheme != "graphqls" {
-		return fmt.Errorf("unsupported scheme %s. Only graphql(s) supported", u.Scheme)
-	}
-
-	return nil
 }
 
 func (a GraphQLAction) DoAction(ctx context.Context) (interface{}, error) {
@@ -106,15 +89,19 @@ func (a GraphQLAction) DoAction(ctx context.Context) (interface{}, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	for k, v := range a.Headers {
 		request.Header.Set(k, v)
 	}
+
 	request.Header.Set("Content-Type", "application/json")
 
 	var result httpstat.Result
+
 	defer func() {
 		result.End(time.Now())
 	}()
+
 	reqCtx := httpstat.WithHTTPStat(ctx, &result)
 	request = request.WithContext(reqCtx)
 
@@ -133,7 +120,6 @@ func (a GraphQLAction) DoAction(ctx context.Context) (interface{}, error) {
 					Msgf("📥 %d %s", response.StatusCode, request.URL)
 			},
 		},
-		Timeout: time.Duration(a.Timeout),
 	}
 
 	return client.Do(request) //nolint:bodyclose
