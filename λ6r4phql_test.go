@@ -37,7 +37,7 @@ func graphqlSuccessfulPostWithNoVariablesFixture() graphqlFixture {
 	return graphqlFixture{
 		ctx: context.Background(),
 		graphqlAction: GraphQLAction{
-			URI: fmt.Sprintf("graphql://127.0.0.1:%d/graphql", port),
+			URI:     fmt.Sprintf("graphql://127.0.0.1:%d/graphql", port),
 			Headers: map[string]string{},
 			Query:   "{foo}",
 		},
@@ -182,8 +182,16 @@ func TestGraphqlActionFactory(t *testing.T) {
 
 			So(action, ShouldHaveSameTypeAs, &GraphQLAction{})
 			So(action.(*GraphQLAction).URI, ShouldEqual, "")
+			So(action.(*GraphQLAction).GetURI(), ShouldEqual, "")
 			So(action.(*GraphQLAction).Headers, ShouldResemble, map[string]string{})
 			So(action.(*GraphQLAction).Variables, ShouldResemble, map[string]interface{}{})
+		})
+
+		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
+			log.
+				Info().
+				Object("action", action).
+				Msg("action built")
 		})
 	})
 }

@@ -274,10 +274,18 @@ func TestHttpActionFactory(t *testing.T) {
 
 			So(action, ShouldHaveSameTypeAs, &HTTPAction{})
 			So(action.(*HTTPAction).URI, ShouldEqual, "")
+			So(action.(*HTTPAction).GetURI(), ShouldEqual, "")
 			So(action.(*HTTPAction).Headers, ShouldResemble, map[string]string{})
 			So(action.(*HTTPAction).Body, ShouldEqual, "")
 			So(action.(*HTTPAction).Options.Transport.MaxRedirects, ShouldEqual, 50)
 			So(action.(*HTTPAction).Options.Transport.FollowRedirect, ShouldEqual, true)
+		})
+
+		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
+			log.
+				Info().
+				Object("action", action).
+				Msg("action built")
 		})
 	})
 }
