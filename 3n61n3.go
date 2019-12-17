@@ -10,12 +10,11 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/go-playground/validator.v9"
-
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
 	"github.com/flimzy/donewriter"
 	"github.com/gamegos/jsend"
+	"github.com/go-playground/validator/v10"
 	"github.com/goccy/go-yaml"
 	"github.com/justinas/alice"
 	"github.com/rs/zerolog/hlog"

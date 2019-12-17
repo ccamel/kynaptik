@@ -7,6 +7,7 @@ require (
 	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
+	github.com/go-playground/validator/v10 v10.0.1
 	github.com/goccy/go-yaml v1.1.5
 	github.com/imdario/mergo v0.3.8 // indirect
 	github.com/justinas/alice v1.2.0
@@ -18,6 +19,5 @@ require (
 	github.com/spf13/afero v1.2.2
 	github.com/tcnksm/go-httpstat v0.2.0
 	golang.org/x/crypto v0.0.0-20191206172530-e9b2fee46413 // indirect
-	gopkg.in/go-playground/validator.v9 v9.30.2
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
