@@ -40,6 +40,9 @@ lint: install-tools
 goconvey: install-tools
 	$(GOPATH)/bin/goconvey -excludedDirs build,config,doc,dist,specs,vendor
 
+tidy:
+	go mod tidy && go mod verify
+
 thanks: install-tools
 	$(GOPATH)/bin/gothanks -y | grep -v "is already"
 
