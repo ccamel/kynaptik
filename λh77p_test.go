@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io"
@@ -11,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"testing"
+	"text/template"
 	"time"
 
 	"github.com/phayes/freeport"
@@ -225,7 +227,19 @@ func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPOptions, err
 			assert: func(res interface{}, err error) {
 				So(err, ShouldNotBeNil)
 				So(res.(*http.Response).StatusCode, ShouldEqual, http.StatusMovedPermanently)
-				So(err.Error(), ShouldEqual, fmt.Sprintf(errMessage, port))
+				So(err.Error(), func(actual interface{}, expected ...interface{}) string {
+					var tpl bytes.Buffer
+					err := template.
+						Must(template.New("error-msg").Parse(expected[0].(string))).
+						Execute(&tpl, expected[1])
+					if err != nil {
+						return err.Error()
+					}
+					So(actual.(string), ShouldEndWith, tpl.String())
+					return ""
+				}, errMessage, map[string]interface{}{
+					"port": port,
+				})
 			},
 		}
 	}
@@ -239,10 +253,10 @@ func TestHttpFunction(t *testing.T) {
 			httpSuccessfulGetWithRedirectInvocationFixture,
 			httpFailedGetWithRedirectInvocationFixtureProvider(
 				HTTPOptions{Transport: HTTPTransportOptions{FollowRedirect: false, MaxRedirects: 5}},
-				"Get http://localhost:%[1]d/?q=0: no redirect allowed for http://localhost:%[1]d/?q=0"),
+				": no redirect allowed for http://localhost:{{ .port }}/?q=0"),
 			httpFailedGetWithRedirectInvocationFixtureProvider(
 				HTTPOptions{Transport: HTTPTransportOptions{FollowRedirect: true, MaxRedirects: 5}},
-				"Get http://localhost:%[1]d/?q=0: stopped after 5 redirects"),
+				": stopped after 5 redirects"),
 		}
 
 		for k, fixtureSupplier := range fixtures {
