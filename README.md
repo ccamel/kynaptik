@@ -5,6 +5,9 @@
 [![build-status](https://circleci.com/gh/ccamel/kynaptik/tree/master.svg?style=shield)](https://circleci.com/gh/ccamel/kynaptik/tree/master)
 [![coverage-status](https://coveralls.io/repos/github/ccamel/kynaptik/badge.svg?branch=master&kill_cache=1)](https://coveralls.io/github/ccamel/kynaptik?branch=master)
 [![maintainability](https://api.codeclimate.com/v1/badges/bb38e3df1b0591b4d1ef/maintainability)](https://codeclimate.com/github/ccamel/kynaptik/maintainability)
+[![quality-gate-status](https://sonarcloud.io/api/project_badges/measure?project=ccamel_kynaptik&metric=alert_status)](https://sonarcloud.io/dashboard?id=ccamel_kynaptik)
+[![lines-of-code](https://sonarcloud.io/api/project_badges/measure?project=ccamel_kynaptik&metric=ncloc)](https://sonarcloud.io/dashboard?id=ccamel_kynaptik)
+[![technical-debt](https://sonarcloud.io/api/project_badges/measure?project=ccamel_kynaptik&metric=sqale_index)](https://sonarcloud.io/dashboard?id=ccamel_kynaptik)
 [![stackshare](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/ccamel/kynaptik)
 
 > Serverless Function on [Kubernetes][kubernetes] (through [Fission][fission]) providing a generic and configurable mean to trigger _actions_ from incoming _events_.
