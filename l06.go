@@ -68,3 +68,11 @@ func responseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshal
 		}
 	})
 }
+
+func mapToLogObjectMarshaller(m map[string]string) zerolog.LogObjectMarshaler {
+	return loggerFunc(func(e *zerolog.Event) {
+		for k, v := range m {
+			e.Str(k, v)
+		}
+	})
+}
