@@ -32,20 +32,22 @@ func resultToLogObjectMarshaller(result *httpstat.Result) zerolog.LogObjectMarsh
 	})
 }
 
-func requestToLogObjectMarshaller(r *http.Request) zerolog.LogObjectMarshaler {
+func httpHeaderToLogObjectMarshaller(h http.Header) zerolog.LogObjectMarshaler {
 	return loggerFunc(func(e *zerolog.Event) {
-		if r != nil {
-			h := zerolog.Dict()
+		for k, v := range h {
+			e.Strs(k, v)
+		}
+	})
+}
 
-			for k, v := range r.Header {
-				h.Strs(k, v)
-			}
-
+func requestToLogObjectMarshaller(req *http.Request) zerolog.LogObjectMarshaler {
+	return loggerFunc(func(e *zerolog.Event) {
+		if req != nil {
 			e.
-				Str("url", r.URL.String()).
-				Str("method", r.Method).
-				Int64("content-length", r.ContentLength).
-				Dict("headers", h)
+				Str("url", req.URL.String()).
+				Str("method", req.Method).
+				Int64("content-length", req.ContentLength).
+				Object("headers", httpHeaderToLogObjectMarshaller(req.Header))
 		}
 	})
 }
@@ -53,17 +55,11 @@ func requestToLogObjectMarshaller(r *http.Request) zerolog.LogObjectMarshaler {
 func responseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshaler {
 	return loggerFunc(func(e *zerolog.Event) {
 		if resp != nil {
-			h := zerolog.Dict()
-
-			for k, v := range resp.Header {
-				h.Strs(k, v)
-			}
-
 			e.
 				Int64("content-length", resp.ContentLength).
 				Int("status-code", resp.StatusCode).
 				Str("status", resp.Status).
-				Dict("headers", h)
+				Object("headers", httpHeaderToLogObjectMarshaller(resp.Header))
 
 			responseCtx := resp.Request.Context()
 			if start, ok := responseCtx.Value(loghttp.ContextKeyRequestStart).(time.Time); ok {
