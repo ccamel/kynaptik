@@ -52,11 +52,7 @@ func (a GraphQLAction) GetURI() string {
 func (a GraphQLAction) MarshalZerologObject(e *zerolog.Event) {
 	e.
 		Str("uri", a.URI).
-		Object("headers", loggerFunc(func(e *zerolog.Event) {
-			for k, v := range a.Headers {
-				e.Str(k, v)
-			}
-		})).
+		Object("headers", mapToLogObjectMarshaller(a.Headers)).
 		Str("query", a.Query).
 		Dict("variables", zerolog.Dict().Fields(a.Variables))
 }

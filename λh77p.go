@@ -107,11 +107,7 @@ func (a *HTTPAction) MarshalZerologObject(e *zerolog.Event) {
 	e.
 		Str("uri", a.URI).
 		Str("method", a.Method).
-		Object("headers", loggerFunc(func(e *zerolog.Event) {
-			for k, v := range a.Headers {
-				e.Str(k, v)
-			}
-		})).
+		Object("headers", mapToLogObjectMarshaller(a.Headers)).
 		Str("body", a.Body)
 }
 
