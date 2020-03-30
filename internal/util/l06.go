@@ -33,7 +33,7 @@ func ResultToLogObjectMarshaller(result *httpstat.Result) zerolog.LogObjectMarsh
 	})
 }
 
-func HttpHeaderToLogObjectMarshaller(h http.Header) zerolog.LogObjectMarshaler {
+func HTTPHeaderToLogObjectMarshaller(h http.Header) zerolog.LogObjectMarshaler {
 	return LoggerFunc(func(e *zerolog.Event) {
 		for k, v := range h {
 			e.Strs(k, v)
@@ -48,7 +48,7 @@ func RequestToLogObjectMarshaller(req *http.Request) zerolog.LogObjectMarshaler 
 				Str("url", req.URL.String()).
 				Str("method", req.Method).
 				Int64("content-length", req.ContentLength).
-				Object("headers", HttpHeaderToLogObjectMarshaller(req.Header))
+				Object("headers", HTTPHeaderToLogObjectMarshaller(req.Header))
 		}
 	})
 }
@@ -60,7 +60,7 @@ func ResponseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshal
 				Int64("content-length", resp.ContentLength).
 				Int("status-code", resp.StatusCode).
 				Str("status", resp.Status).
-				Object("headers", HttpHeaderToLogObjectMarshaller(resp.Header))
+				Object("headers", HTTPHeaderToLogObjectMarshaller(resp.Header))
 
 			responseCtx := resp.Request.Context()
 			if start, ok := responseCtx.Value(loghttp.ContextKeyRequestStart).(time.Time); ok {
@@ -78,9 +78,9 @@ func MapToLogObjectMarshaller(m map[string]string) zerolog.LogObjectMarshaler {
 	})
 }
 
-// HttpRequestLogger is a convenient higher-order function which returns a function ready to be used as
+// HTTPRequestLogger is a convenient higher-order function which returns a function ready to be used as
 // parameter for LogRequest field of http.Transport.
-func HttpRequestLogger() func(request *http.Request) {
+func HTTPRequestLogger() func(request *http.Request) {
 	return func(request *http.Request) {
 		log.
 			Ctx(request.Context()).
@@ -89,9 +89,9 @@ func HttpRequestLogger() func(request *http.Request) {
 	}
 }
 
-// HttpResponseLogger  is a convenient higher-order function which returns a function ready to be used as
+// HTTPResponseLogger  is a convenient higher-order function which returns a function ready to be used as
 // parameter for LogResponse field of http.Transport.
-func HttpResponseLogger(result httpstat.Result) func(response *http.Response) {
+func HTTPResponseLogger(result httpstat.Result) func(response *http.Response) {
 	return func(response *http.Response) {
 		log.Ctx(response.Request.Context()).
 			Info().
