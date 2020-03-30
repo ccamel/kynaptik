@@ -50,6 +50,10 @@ thanks: install-tools
 certificates: install-tools clean-certificates
 	cd etc/cert && $(GOPATH)/bin/generate-tls-cert --host localhost --duration 876000h
 
+clean:
+	find build \! -name '.keepme' -delete
+	find dist \! -name '.keepme' -delete
+
 clean-certificates:
 	rm -f etc/cert/*
 
