@@ -14,7 +14,6 @@ import (
 	"github.com/ccamel/kynaptik/pkg/kynaptik"
 	"github.com/motemen/go-loghttp"
 	"github.com/rs/zerolog"
-	"github.com/rs/zerolog/log"
 	"github.com/spf13/afero"
 	"github.com/tcnksm/go-httpstat"
 )
@@ -139,18 +138,8 @@ func (a *Action) DoAction(ctx context.Context) (interface{}, error) {
 
 	client := http.Client{
 		Transport: &loghttp.Transport{
-			LogRequest: func(request *http.Request) {
-				log.Ctx(ctx).
-					Info().
-					Msgf("📤 %s %s", request.Method, request.URL)
-			},
-			LogResponse: func(response *http.Response) {
-				log.Ctx(ctx).
-					Info().
-					Object("response", util.ResponseToLogObjectMarshaller(response)).
-					Object("stats", util.ResultToLogObjectMarshaller(&result)).
-					Msgf("📥 %d %s", response.StatusCode, request.URL)
-			},
+			LogRequest:  util.HttpRequestLogger(),
+			LogResponse: util.HttpResponseLogger(result), //nolint:bodyclose
 			Transport: &http.Transport{
 				TLSClientConfig: tlsConfig,
 			},

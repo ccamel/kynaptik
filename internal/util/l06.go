@@ -7,6 +7,7 @@ import (
 	"github.com/motemen/go-loghttp"
 	"github.com/motemen/go-nuts/roundtime"
 	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"github.com/tcnksm/go-httpstat"
 )
 
@@ -75,4 +76,27 @@ func MapToLogObjectMarshaller(m map[string]string) zerolog.LogObjectMarshaler {
 			e.Str(k, v)
 		}
 	})
+}
+
+// HttpRequestLogger is a convenient higher-order function which returns a function ready to be used as
+// parameter for LogRequest field of http.Transport.
+func HttpRequestLogger() func(request *http.Request) {
+	return func(request *http.Request) {
+		log.
+			Ctx(request.Context()).
+			Info().
+			Msgf("📤 %s %s", request.Method, request.URL)
+	}
+}
+
+// HttpResponseLogger  is a convenient higher-order function which returns a function ready to be used as
+// parameter for LogResponse field of http.Transport.
+func HttpResponseLogger(result httpstat.Result) func(response *http.Response) {
+	return func(response *http.Response) {
+		log.Ctx(response.Request.Context()).
+			Info().
+			Object("response", ResponseToLogObjectMarshaller(response)).
+			Object("stats", ResultToLogObjectMarshaller(&result)).
+			Msgf("📥 %d %s", response.StatusCode, response.Request.URL)
+	}
 }
