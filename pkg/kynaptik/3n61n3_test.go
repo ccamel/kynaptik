@@ -1,4 +1,4 @@
-package main
+package kynaptik
 
 import (
 	"context"
@@ -139,7 +139,7 @@ func actDefault(f engineFixture) *httptest.ResponseRecorder {
 
 	http.
 		HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			invokeλ(w, r, f.appFS,
+			Invokeλ(w, r, f.appFS,
 				func() Config {
 					return Config{
 						PreCondition:  "true",
@@ -299,7 +299,7 @@ preCondition: |
 
 action:
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -324,7 +324,7 @@ preCondition: |
 action: |
   uri: 'bad://'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -349,7 +349,7 @@ preCondition: |
 action: |
   bad action
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -483,7 +483,7 @@ action: |
   uri: 'null://'
   param1: 'foo'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
@@ -508,7 +508,7 @@ preCondition: |
 action: |
   uri: 'null://'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -533,7 +533,7 @@ preCondition: |
 action: |
   uri: 'null://'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
@@ -557,7 +557,7 @@ preCondition: |
 action: |
   uri: 'null://'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
@@ -582,7 +582,7 @@ preCondition: |
 action: |
   uri: 'null://'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusOK)
@@ -610,7 +610,7 @@ action: |
 postCondition: |
   !=
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
@@ -638,7 +638,7 @@ action: |
 postCondition: |
   a + 5 == 6
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
@@ -667,7 +667,7 @@ action: |
 postCondition: |
   response
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
@@ -696,7 +696,7 @@ action: |
 postCondition: |
   response == "ok"
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
@@ -722,7 +722,7 @@ preCondition: |
 action: |
   uri: 'http://127.0.0.1?{{ unknownfunc }}'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
@@ -765,7 +765,7 @@ preCondition: |
 action: |
   uri: 'null://'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
@@ -790,7 +790,7 @@ preCondition: |
 action: |
   uri: 'http://127.0.0.1'
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
 		return nil, fmt.Errorf("net/http: request canceled")
@@ -824,7 +824,7 @@ action: |
 postCondition: |
   response == "ok"
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
 		So(action.URI, ShouldEqual, "http://127.0.0.1?id=Rmlyc3Qgb3B0aW9u=")
@@ -864,7 +864,7 @@ action: |
 postCondition: |
   response == "ok"
 `
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
 		So(action.URI, ShouldEqual, "http://127.0.0.1?id=Rmlyc3Qgb3B0aW9u=")
@@ -909,7 +909,7 @@ username: 'YWRtaW4='
 password: 'c+KCrGNy4oKsdA=='
 `
 
-	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(mediaTypeJSON), arrangeConfig, arrangeSecret)
+	f.arrange = arrangeWith(f, arrangeTime, arrangeReqNamespaceHeaders, arrangeReqContentTypeHeaders(MediaTypeJSON), arrangeConfig, arrangeSecret)
 	f.act = actDefault
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) {
 		So(action.Param1, ShouldEqual, "admin:s€cr€t")

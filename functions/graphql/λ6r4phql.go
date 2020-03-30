@@ -8,6 +8,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ccamel/kynaptik/internal/util"
+	"github.com/ccamel/kynaptik/pkg/kynaptik"
 	"github.com/motemen/go-loghttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -15,7 +17,7 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
-type GraphQLAction struct {
+type Action struct {
 	URI           string                 `yaml:"uri" validate:"required,uri,scheme=graphql|scheme=graphqls"`
 	Headers       map[string]string      `yaml:"headers"`
 	Query         string                 `yaml:"query" validate:"min=2"`
@@ -23,8 +25,8 @@ type GraphQLAction struct {
 	OperationName string                 `yaml:"operationName"`
 }
 
-func GraphQLConfigFactory() Config {
-	return Config{
+func ConfigFactory() kynaptik.Config {
+	return kynaptik.Config{
 		// PreCondition specifies the default pre-condition value. Here, we accept everything.
 		PreCondition: "true",
 		// PostCondition specifies the default post-condition to satisfy in order to consider the HTTP call
@@ -33,31 +35,31 @@ func GraphQLConfigFactory() Config {
 	}
 }
 
-func GraphQLActionFactory() Action {
-	return &GraphQLAction{
+func ActionFactory() kynaptik.Action {
+	return &Action{
 		Headers:   map[string]string{},
 		Variables: map[string]interface{}{},
 	}
 }
 
-// GraphqlEntryPoint is the entry point for this Fission function
-func GraphqlEntryPoint(w http.ResponseWriter, r *http.Request) {
-	invokeλ(w, r, afero.NewOsFs(), GraphQLConfigFactory, GraphQLActionFactory)
+// EntryPoint is the entry point for this Fission function
+func EntryPoint(w http.ResponseWriter, r *http.Request) {
+	kynaptik.Invokeλ(w, r, afero.NewOsFs(), ConfigFactory, ActionFactory)
 }
 
-func (a GraphQLAction) GetURI() string {
+func (a Action) GetURI() string {
 	return a.URI
 }
 
-func (a GraphQLAction) MarshalZerologObject(e *zerolog.Event) {
+func (a Action) MarshalZerologObject(e *zerolog.Event) {
 	e.
 		Str("uri", a.URI).
-		Object("headers", mapToLogObjectMarshaller(a.Headers)).
+		Object("headers", util.MapToLogObjectMarshaller(a.Headers)).
 		Str("query", a.Query).
 		Dict("variables", zerolog.Dict().Fields(a.Variables))
 }
 
-func (a GraphQLAction) DoAction(ctx context.Context) (interface{}, error) {
+func (a Action) DoAction(ctx context.Context) (interface{}, error) {
 	uri := strings.Replace(a.URI, "graphql", "http", 1)
 	payload := struct {
 		Query         string                 `json:"query"`
@@ -111,8 +113,8 @@ func (a GraphQLAction) DoAction(ctx context.Context) (interface{}, error) {
 			LogResponse: func(response *http.Response) {
 				log.Ctx(ctx).
 					Info().
-					Object("response", responseToLogObjectMarshaller(response)).
-					Object("stats", resultToLogObjectMarshaller(&result)).
+					Object("response", util.ResponseToLogObjectMarshaller(response)).
+					Object("stats", util.ResultToLogObjectMarshaller(&result)).
 					Msgf("📥 %d %s", response.StatusCode, request.URL)
 			},
 		},

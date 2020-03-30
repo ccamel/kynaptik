@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"path"
 	"reflect"
 	"runtime"
 	"testing"
@@ -24,7 +25,7 @@ type httpFixtureSupplier func() httpFixture
 
 type httpFixture struct {
 	ctx        context.Context
-	httpAction HTTPAction
+	httpAction Action
 	// arrange is a function which initializes the fixture and in returns provides a function which finalizes (clean)
 	// that fixture when called
 	arrange func(c C, ctx context.Context) func()
@@ -38,7 +39,7 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 
 	return httpFixture{
 		ctx: context.Background(),
-		httpAction: HTTPAction{
+		httpAction: Action{
 			URI:    fmt.Sprintf("http://127.0.0.1:%d", port),
 			Method: "POST",
 			Headers: map[string]string{
@@ -93,15 +94,16 @@ func httpSuccessfulGetWithTLSInvocationFixture() httpFixture {
 	port, err := freeport.GetFreePort()
 	So(err, ShouldBeNil)
 
-	rootPem, _ := ioutil.ReadFile("./etc/cert/root.pem")
+	etcPath := "../../etc/"
+	rootPem, _ := ioutil.ReadFile(path.Join(etcPath, "cert/root.pem"))
 
 	return httpFixture{
 		ctx: context.Background(),
-		httpAction: HTTPAction{
+		httpAction: Action{
 			URI:    fmt.Sprintf("https://localhost:%d/foo", port),
 			Method: "GET",
-			Options: HTTPOptions{
-				TLS: HTTPTLSOptions{
+			Options: Options{
+				TLS: TLSOptions{
 					CACertData:         string(rootPem),
 					InsecureSkipVerify: false,
 				},
@@ -112,15 +114,16 @@ func httpSuccessfulGetWithTLSInvocationFixture() httpFixture {
 			So(err, ShouldBeNil)
 
 			go func() {
+				certFile := path.Join(etcPath, "cert/leaf.pem")
+				keyFile := path.Join(etcPath, "cert/leaf.key")
 				err := http.ServeTLS(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					c.So(r.URL.String(), ShouldEqual, "/foo")
 					c.So(r.Method, ShouldEqual, "GET")
 
 					time.Sleep(time.Duration(rand.Intn(100-5)+5) * time.Millisecond)
 					_, _ = io.WriteString(w, "ok")
-				}), "./etc/cert/leaf.pem", "./etc/cert/leaf.key")
+				}), certFile, keyFile)
 				if err != nil {
-					fmt.Printf(err.Error())
 					c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
 				}
 			}()
@@ -148,11 +151,11 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 
 	return httpFixture{
 		ctx: context.Background(),
-		httpAction: HTTPAction{
+		httpAction: Action{
 			URI:    fmt.Sprintf("http://127.0.0.1:%d", port),
 			Method: "GET",
-			Options: HTTPOptions{
-				Transport: HTTPTransportOptions{
+			Options: Options{
+				Transport: TransportOptions{
 					FollowRedirect: true,
 					MaxRedirects:   5,
 				},
@@ -194,14 +197,14 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 	}
 }
 
-func httpFailedGetWithRedirectInvocationFixtureProvider(options HTTPOptions, errMessage string) func() httpFixture {
+func httpFailedGetWithRedirectInvocationFixtureProvider(options Options, errMessage string) func() httpFixture {
 	return func() httpFixture {
 		port, err := freeport.GetFreePort()
 		So(err, ShouldBeNil)
 
 		return httpFixture{
 			ctx: context.Background(),
-			httpAction: HTTPAction{
+			httpAction: Action{
 				URI:     fmt.Sprintf("http://127.0.0.1:%d", port),
 				Method:  "GET",
 				Options: options,
@@ -252,10 +255,10 @@ func TestHttpFunction(t *testing.T) {
 			httpSuccessfulGetWithTLSInvocationFixture,
 			httpSuccessfulGetWithRedirectInvocationFixture,
 			httpFailedGetWithRedirectInvocationFixtureProvider(
-				HTTPOptions{Transport: HTTPTransportOptions{FollowRedirect: false, MaxRedirects: 5}},
+				Options{Transport: TransportOptions{FollowRedirect: false, MaxRedirects: 5}},
 				": no redirect allowed for http://localhost:{{ .port }}/?q=0"),
 			httpFailedGetWithRedirectInvocationFixtureProvider(
-				HTTPOptions{Transport: HTTPTransportOptions{FollowRedirect: true, MaxRedirects: 5}},
+				Options{Transport: TransportOptions{FollowRedirect: true, MaxRedirects: 5}},
 				": stopped after 5 redirects"),
 		}
 
@@ -282,17 +285,17 @@ func TestHttpFunction(t *testing.T) {
 
 func TestHttpActionFactory(t *testing.T) {
 	Convey("When calling HttpActionFactory", t, func(c C) {
-		action := HTTPActionFactory()
+		action := actionFactory()
 
-		Convey(fmt.Sprintf("Then action created is an HTTPAction with default values"), func() {
+		Convey(fmt.Sprintf("Then action created is an Action with default values"), func() {
 
-			So(action, ShouldHaveSameTypeAs, &HTTPAction{})
-			So(action.(*HTTPAction).URI, ShouldEqual, "")
-			So(action.(*HTTPAction).GetURI(), ShouldEqual, "")
-			So(action.(*HTTPAction).Headers, ShouldResemble, map[string]string{})
-			So(action.(*HTTPAction).Body, ShouldEqual, "")
-			So(action.(*HTTPAction).Options.Transport.MaxRedirects, ShouldEqual, 50)
-			So(action.(*HTTPAction).Options.Transport.FollowRedirect, ShouldEqual, true)
+			So(action, ShouldHaveSameTypeAs, &Action{})
+			So(action.(*Action).URI, ShouldEqual, "")
+			So(action.(*Action).GetURI(), ShouldEqual, "")
+			So(action.(*Action).Headers, ShouldResemble, map[string]string{})
+			So(action.(*Action).Body, ShouldEqual, "")
+			So(action.(*Action).Options.Transport.MaxRedirects, ShouldEqual, 50)
+			So(action.(*Action).Options.Transport.FollowRedirect, ShouldEqual, true)
 		})
 
 		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
@@ -305,18 +308,18 @@ func TestHttpActionFactory(t *testing.T) {
 }
 
 func TestHTTPEntryPoint(t *testing.T) {
-	Convey("When calling 'HTTPEntryPoint' function", t, func(c C) {
+	Convey("When calling 'EntryPoint' function", t, func(c C) {
 		Convey("Then it shall panic (this is expected)", func() {
 			So(func() {
-				HTTPEntryPoint(nil, nil)
+				EntryPoint(nil, nil)
 			}, ShouldPanic)
 		})
 	})
 }
 
 func TestHTTPConfigFactory(t *testing.T) {
-	Convey("When calling 'HTTPConfigFactory' function", t, func(c C) {
-		factory := HTTPConfigFactory()
+	Convey("When calling 'configFactory' function", t, func(c C) {
+		factory := configFactory()
 		Convey("Then configuration provided shall be the expected one", func() {
 			So(factory.PreCondition, ShouldEqual, "true")
 		})

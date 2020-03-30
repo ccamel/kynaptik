@@ -1,4 +1,4 @@
-package main
+package kynaptik
 
 import (
 	"context"
@@ -12,6 +12,7 @@ import (
 
 	"github.com/antonmedv/expr"
 	"github.com/antonmedv/expr/vm"
+	"github.com/ccamel/kynaptik/internal/util"
 	"github.com/flimzy/donewriter"
 	"github.com/gamegos/jsend"
 	"github.com/go-playground/validator/v10"
@@ -21,11 +22,12 @@ import (
 	"github.com/spf13/afero"
 )
 
-const mediaTypeJSON = "application/json"
+const MediaTypeJSON = "application/json"
 
 type environment map[string]interface{}
 
-func invokeλ(
+// Invokeλ performs the invocation of the λ function.
+func Invokeλ(
 	w http.ResponseWriter,
 	r *http.Request,
 	fs afero.Fs,
@@ -58,7 +60,7 @@ func installValidatorHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			validate := validator.New()
-			_ = validate.RegisterValidation("scheme", SchemeValidate)
+			_ = validate.RegisterValidation("scheme", util.SchemeValidate)
 
 			r = r.WithContext(context.WithValue(r.Context(), ctxKeyValidate, validate))
 
@@ -73,7 +75,7 @@ func logIncomingRequestHandler() alice.Constructor {
 			hlog.
 				FromRequest(r).
 				Info().
-				Object("request", requestToLogObjectMarshaller(r)).
+				Object("request", util.RequestToLogObjectMarshaller(r)).
 				Msg("⚙️ λ invoked")
 
 			Ͱ.ServeHTTP(w, r)
@@ -89,7 +91,7 @@ func loadConfigurationHandler(fs afero.Fs, configFactory func() Config) alice.Co
 			namespace := r.Header.Get("X-Fission-Function-Namespace")
 			validate := r.Context().Value(ctxKeyValidate).(*validator.Validate)
 
-			in, err := OpenResource(fs, folder, namespace, configName)
+			in, err := util.OpenResource(fs, folder, namespace, configName)
 			defer func() {
 				if in != nil {
 					_ = in.Close()
@@ -141,7 +143,7 @@ func loadSecretHandler(fs afero.Fs) alice.Constructor {
 			folder := "secrets"
 			namespace := r.Header.Get("X-Fission-Function-Namespace")
 
-			in, err := OpenResource(fs, folder, namespace, resourceName)
+			in, err := util.OpenResource(fs, folder, namespace, resourceName)
 			defer func() {
 				if in != nil {
 					_ = in.Close()
@@ -220,11 +222,11 @@ func checkContentTypeHandler() alice.Constructor {
 					if err != nil {
 						break
 					}
-					if t == mediaTypeJSON {
+					if t == MediaTypeJSON {
 						hlog.
 							FromRequest(r).
 							Info().
-							Str("content-type", mediaTypeJSON).
+							Str("content-type", MediaTypeJSON).
 							Msg("☑️️ valid media type")
 
 						Ͱ.ServeHTTP(w, r)
@@ -237,7 +239,7 @@ func checkContentTypeHandler() alice.Constructor {
 			_, _ = jsend.
 				Wrap(w).
 				Status(http.StatusUnsupportedMediaType).
-				Message(fmt.Sprintf("unsupported media type. Expected: %s", mediaTypeJSON)).
+				Message(fmt.Sprintf("unsupported media type. Expected: %s", MediaTypeJSON)).
 				Data(&ResponseData{"check-content-type"}).
 				Send()
 		})
@@ -381,7 +383,7 @@ func matchPreConditionHandler() alice.Constructor {
 			program := r.Context().Value(ctxKeyPreConditionProgram).(*vm.Program)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
-			matched, err := EvaluatePredicateExpression(program, env)
+			matched, err := util.EvaluatePredicateExpression(program, env)
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).
@@ -433,7 +435,7 @@ func buildActionHandler(actionFactory ActionFactory) alice.Constructor {
 					Send()
 			}
 
-			in, err := RenderTemplatedString("action", actionSpec, env)
+			in, err := util.RenderTemplatedString("action", actionSpec, env)
 			if err != nil {
 				sendError(err)
 				return
@@ -472,7 +474,7 @@ func matchPostConditionHandler() alice.Constructor {
 			program := r.Context().Value(ctxKeyPostConditionProgram).(*vm.Program)
 			env := r.Context().Value(ctxKeyEnv).(environment)
 
-			matched, err := EvaluatePredicateExpression(program, env)
+			matched, err := util.EvaluatePredicateExpression(program, env)
 			if err != nil {
 				_, _ = jsend.
 					Wrap(w).

@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"net/http"
@@ -10,16 +10,16 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
-// loggerFunc turns a function into an a zerolog marshaller.
-type loggerFunc func(e *zerolog.Event)
+// LoggerFunc turns a function into an a zerolog marshaller.
+type LoggerFunc func(e *zerolog.Event)
 
 // MarshalZerologObject makes the LoggerFunc type a LogObjectMarshaler.
-func (f loggerFunc) MarshalZerologObject(e *zerolog.Event) {
+func (f LoggerFunc) MarshalZerologObject(e *zerolog.Event) {
 	f(e)
 }
 
-func resultToLogObjectMarshaller(result *httpstat.Result) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
+func ResultToLogObjectMarshaller(result *httpstat.Result) zerolog.LogObjectMarshaler {
+	return LoggerFunc(func(e *zerolog.Event) {
 		e.
 			Dur("dns-lookup", result.DNSLookup).
 			Dur("tcp-connection", result.TCPConnection).
@@ -32,34 +32,34 @@ func resultToLogObjectMarshaller(result *httpstat.Result) zerolog.LogObjectMarsh
 	})
 }
 
-func httpHeaderToLogObjectMarshaller(h http.Header) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
+func HttpHeaderToLogObjectMarshaller(h http.Header) zerolog.LogObjectMarshaler {
+	return LoggerFunc(func(e *zerolog.Event) {
 		for k, v := range h {
 			e.Strs(k, v)
 		}
 	})
 }
 
-func requestToLogObjectMarshaller(req *http.Request) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
+func RequestToLogObjectMarshaller(req *http.Request) zerolog.LogObjectMarshaler {
+	return LoggerFunc(func(e *zerolog.Event) {
 		if req != nil {
 			e.
 				Str("url", req.URL.String()).
 				Str("method", req.Method).
 				Int64("content-length", req.ContentLength).
-				Object("headers", httpHeaderToLogObjectMarshaller(req.Header))
+				Object("headers", HttpHeaderToLogObjectMarshaller(req.Header))
 		}
 	})
 }
 
-func responseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
+func ResponseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshaler {
+	return LoggerFunc(func(e *zerolog.Event) {
 		if resp != nil {
 			e.
 				Int64("content-length", resp.ContentLength).
 				Int("status-code", resp.StatusCode).
 				Str("status", resp.Status).
-				Object("headers", httpHeaderToLogObjectMarshaller(resp.Header))
+				Object("headers", HttpHeaderToLogObjectMarshaller(resp.Header))
 
 			responseCtx := resp.Request.Context()
 			if start, ok := responseCtx.Value(loghttp.ContextKeyRequestStart).(time.Time); ok {
@@ -69,8 +69,8 @@ func responseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshal
 	})
 }
 
-func mapToLogObjectMarshaller(m map[string]string) zerolog.LogObjectMarshaler {
-	return loggerFunc(func(e *zerolog.Event) {
+func MapToLogObjectMarshaller(m map[string]string) zerolog.LogObjectMarshaler {
+	return LoggerFunc(func(e *zerolog.Event) {
 		for k, v := range m {
 			e.Str(k, v)
 		}

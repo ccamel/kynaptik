@@ -10,6 +10,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/ccamel/kynaptik/internal/util"
+	"github.com/ccamel/kynaptik/pkg/kynaptik"
 	"github.com/motemen/go-loghttp"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
@@ -17,32 +19,32 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
-type HTTPAction struct {
+type Action struct {
 	URI     string            `yaml:"uri" validate:"required,uri,scheme=graphql|scheme=graphqls"`
 	Method  string            `yaml:"method" validate:"required,min=3"`
 	Headers map[string]string `yaml:"headers"`
 	Body    string            `yaml:"body"`
-	Options HTTPOptions       `yaml:"options"`
+	Options Options           `yaml:"options"`
 }
 
-type HTTPOptions struct {
-	Transport HTTPTransportOptions `yaml:"transport"`
-	TLS       HTTPTLSOptions       `yaml:"tls"`
+type Options struct {
+	Transport TransportOptions `yaml:"transport"`
+	TLS       TLSOptions       `yaml:"tls"`
 }
 
-type HTTPTransportOptions struct {
+type TransportOptions struct {
 	FollowRedirect bool `yaml:"followRedirect"`
 	MaxRedirects   int  `yaml:"maxRedirects"`
 }
 
-type HTTPTLSOptions struct {
+type TLSOptions struct {
 	CACertData         string `yaml:"caCertData"`
 	ClientCertData     string `yaml:"clientCertData"`
 	ClientKeyData      string `yaml:"clientKeyData"`
 	InsecureSkipVerify bool   `yaml:"insecureSkipVerify"`
 }
 
-func (o HTTPTLSOptions) ToTLSConfig() (*tls.Config, error) {
+func (o TLSOptions) ToTLSConfig() (*tls.Config, error) {
 	if o.CACertData == "" {
 		return &tls.Config{InsecureSkipVerify: o.InsecureSkipVerify}, nil //nolint:gosec
 	}
@@ -72,8 +74,8 @@ func (o HTTPTLSOptions) ToTLSConfig() (*tls.Config, error) {
 	}, nil
 }
 
-func HTTPConfigFactory() Config {
-	return Config{
+func configFactory() kynaptik.Config {
+	return kynaptik.Config{
 		// PreCondition specifies the default pre-condition value. Here, we accept everything.
 		PreCondition: "true",
 		// PostCondition specifies the default post-condition to satisfy in order to consider the HTTP call
@@ -82,11 +84,11 @@ func HTTPConfigFactory() Config {
 	}
 }
 
-func HTTPActionFactory() Action {
-	return &HTTPAction{
+func actionFactory() kynaptik.Action {
+	return &Action{
 		Headers: map[string]string{},
-		Options: HTTPOptions{
-			Transport: HTTPTransportOptions{
+		Options: Options{
+			Transport: TransportOptions{
 				FollowRedirect: true,
 				MaxRedirects:   50,
 			},
@@ -94,24 +96,24 @@ func HTTPActionFactory() Action {
 	}
 }
 
-// HTTPEntryPoint is the entry point for this Fission function
-func HTTPEntryPoint(w http.ResponseWriter, r *http.Request) {
-	invokeλ(w, r, afero.NewOsFs(), HTTPConfigFactory, HTTPActionFactory)
+// EntryPoint is the entry point for this Fission function
+func EntryPoint(w http.ResponseWriter, r *http.Request) {
+	kynaptik.Invokeλ(w, r, afero.NewOsFs(), configFactory, actionFactory)
 }
 
-func (a *HTTPAction) GetURI() string {
+func (a *Action) GetURI() string {
 	return a.URI
 }
 
-func (a *HTTPAction) MarshalZerologObject(e *zerolog.Event) {
+func (a *Action) MarshalZerologObject(e *zerolog.Event) {
 	e.
 		Str("uri", a.URI).
 		Str("method", a.Method).
-		Object("headers", mapToLogObjectMarshaller(a.Headers)).
+		Object("headers", util.MapToLogObjectMarshaller(a.Headers)).
 		Str("body", a.Body)
 }
 
-func (a *HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
+func (a *Action) DoAction(ctx context.Context) (interface{}, error) {
 	request, err := http.NewRequest(a.Method, a.URI, strings.NewReader(a.Body))
 	if err != nil {
 		return nil, err
@@ -145,8 +147,8 @@ func (a *HTTPAction) DoAction(ctx context.Context) (interface{}, error) {
 			LogResponse: func(response *http.Response) {
 				log.Ctx(ctx).
 					Info().
-					Object("response", responseToLogObjectMarshaller(response)).
-					Object("stats", resultToLogObjectMarshaller(&result)).
+					Object("response", util.ResponseToLogObjectMarshaller(response)).
+					Object("stats", util.ResultToLogObjectMarshaller(&result)).
 					Msgf("📥 %d %s", response.StatusCode, request.URL)
 			},
 			Transport: &http.Transport{
