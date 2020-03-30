@@ -7,28 +7,12 @@ LIB_CORE=$(shell find internal pkg -name  "*.go" | grep -v '.*_test')
 
 default: build
 
-install-tools:
-	@if [ ! -f $(GOPATH)/bin/golangci-lint ]; then \
-		echo "installing golangci-lint..."; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0; \
-	fi
-	@if [ ! -f $(GOPATH)/bin/goconvey ]; then \
-		echo "installing goconvey..."; \
-		go get github.com/smartystreets/goconvey; \
-	fi
-	@if [ ! -f $(GOPATH)/bin/gothanks ]; then \
-		echo "installing gothanks..."; \
-		go get -u github.com/psampaz/gothanks; \
-	fi
-	@if [ ! -f $(GOPATH)/bin/generate-tls-cert ]; then \
-		echo "installing generate-tls-cert... $(GOPATH)"; \
-		go get github.com/Shyp/generate-tls-cert; \
-	fi
+install-tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
 
 install-deps:
 	go mod download
 
-build:
+build: install-deps
 	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-http.so functions/http/*.go
 	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-graphql.so functions/graphql/*.go
 
@@ -66,5 +50,19 @@ dist: dist/kynaptik-http.zip dist/kynaptik-graphql.zip
 	cp functions/http/λ.go build/$$NAME/; \
 	cd build/$$NAME && zip -r ../../dist/$$NAME.zip .
 
+$(GOPATH)/bin/golangci-lint:
+	@echo "installing $(notdir $@)"
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0
 
+$(GOPATH)/bin/goconvey:
+	@echo "installing $(notdir $@)"
+	go get github.com/smartystreets/goconvey
+
+$(GOPATH)/bin/gothanks:
+	@echo "installing $(notdir $@)"
+	go get -u github.com/psampaz/gothanks
+
+$(GOPATH)/bin/generate-tls-cert:
+	@echo "installing $(notdir $@)"
+	go get github.com/Shyp/generate-tls-cert
 
