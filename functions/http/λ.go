@@ -45,7 +45,7 @@ type TLSOptions struct {
 
 func (o TLSOptions) ToTLSConfig() (*tls.Config, error) {
 	if o.CACertData == "" {
-		return &tls.Config{InsecureSkipVerify: o.InsecureSkipVerify}, nil //nolint:gosec
+		return &tls.Config{InsecureSkipVerify: o.InsecureSkipVerify}, nil //nolint:gosec // relax security warning here
 	}
 
 	var clientCert []tls.Certificate
@@ -69,7 +69,7 @@ func (o TLSOptions) ToTLSConfig() (*tls.Config, error) {
 	return &tls.Config{
 		Certificates:       clientCert,
 		RootCAs:            pool,
-		InsecureSkipVerify: o.InsecureSkipVerify, //nolint:gosec
+		InsecureSkipVerify: o.InsecureSkipVerify, //nolint:gosec // relax security warning here
 	}, nil
 }
 
@@ -139,7 +139,7 @@ func (a *Action) DoAction(ctx context.Context) (interface{}, error) {
 	client := http.Client{
 		Transport: &loghttp.Transport{
 			LogRequest:  util.HTTPRequestLogger(),
-			LogResponse: util.HTTPResponseLogger(&result), //nolint:bodyclose
+			LogResponse: util.HTTPResponseLogger(&result), //nolint:bodyclose // no need for closing response body here
 			Transport: &http.Transport{
 				TLSClientConfig: tlsConfig,
 			},
@@ -156,5 +156,5 @@ func (a *Action) DoAction(ctx context.Context) (interface{}, error) {
 		},
 	}
 
-	return client.Do(request) //nolint:bodyclose
+	return client.Do(request) //nolint:bodyclose // TODO implement a delayed disposer()
 }

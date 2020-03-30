@@ -105,9 +105,9 @@ func (a Action) DoAction(ctx context.Context) (interface{}, error) {
 	client := http.Client{
 		Transport: &loghttp.Transport{
 			LogRequest:  util.HTTPRequestLogger(),
-			LogResponse: util.HTTPResponseLogger(&result), //nolint:bodyclose
+			LogResponse: util.HTTPResponseLogger(&result), //nolint:bodyclose // no need for closing response body here
 		},
 	}
 
-	return client.Do(request) //nolint:bodyclose
+	return client.Do(request) //nolint:bodyclose // TODO implement a delayed disposer()
 }
