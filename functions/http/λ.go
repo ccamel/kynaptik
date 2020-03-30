@@ -18,6 +18,9 @@ import (
 	"github.com/tcnksm/go-httpstat"
 )
 
+// MaxRedirects specifies the default maximum number of HTTP redirects allowed.
+const MaxRedirects = 50
+
 type Action struct {
 	URI     string            `yaml:"uri" validate:"required,uri,scheme=graphql|scheme=graphqls"`
 	Method  string            `yaml:"method" validate:"required,min=3"`
@@ -89,7 +92,7 @@ func actionFactory() kynaptik.Action {
 		Options: Options{
 			Transport: TransportOptions{
 				FollowRedirect: true,
-				MaxRedirects:   50,
+				MaxRedirects:   MaxRedirects,
 			},
 		},
 	}
