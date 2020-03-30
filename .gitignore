@@ -19,4 +19,8 @@ static/*.go
 
 vendor/
 
+# ouput directories
+build/
+dist/
+
 coverage.txt
