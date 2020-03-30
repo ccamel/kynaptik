@@ -4,16 +4,19 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path"
 	"testing"
 
 	"github.com/antonmedv/expr"
+	"github.com/spf13/afero"
 
 	. "github.com/smartystreets/goconvey/convey"
 )
 
 func TestRenderTemplatedString(t *testing.T) {
 	Convey("Considering RenderTemplatedString() function", t, func(c C) {
-		os.Setenv("FOO", "BAR")
+		err := os.Setenv("FOO", "BAR")
+		So(err, ShouldBeNil)
 
 		cases := []struct {
 			name     string
@@ -186,6 +189,55 @@ func TestEvaluatePredicateExpression(t *testing.T) {
 							So(err, ShouldBeNil)
 						}
 						So(result, ShouldEqual, c.expectedResult)
+					})
+				})
+			})
+		}
+	})
+}
+
+func TestFindFilename(t *testing.T) {
+	Convey("Considering the FindFilename function", t, func(c C) {
+		cases := []struct {
+			filePath         string
+			root             string
+			filename         string
+			expectedFilename string
+		}{
+			{
+				filePath:         "/a/b/c/d/foo.txt",
+				root:             "/",
+				filename:         "foo.txt",
+				expectedFilename: "/a/b/c/d/foo.txt",
+			},
+			{
+				filePath:         "/a/b/c/d/foo.txt",
+				root:             "/x",
+				filename:         "foo.txt",
+				expectedFilename: "",
+			},
+		}
+
+		for n, c := range cases {
+			Convey(fmt.Sprintf("Considering a virtual filesystem containing the file '%s' (case %d)", c.filePath, n), func() {
+				fs := afero.NewMemMapFs()
+
+				err := fs.MkdirAll(path.Dir(c.filePath), os.ModePerm)
+				So(err, ShouldBeNil)
+
+				file, err := fs.OpenFile(c.filePath, os.O_CREATE, os.ModePerm)
+				So(err, ShouldBeNil)
+
+				_, err = file.WriteString("Hello world!")
+				So(err, ShouldBeNil)
+
+				_ = file.Close()
+
+				Convey(fmt.Sprintf("When calling function with root %s and filename %s (case %d)", c.root, c.filename, n), func() {
+					result := FindFilename(fs, c.root, c.filename)
+
+					Convey(fmt.Sprintf("Then filename '%s' shall be returned", c.expectedFilename), func() {
+						So(result, ShouldEqual, c.expectedFilename)
 					})
 				})
 			})
