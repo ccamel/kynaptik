@@ -52,7 +52,7 @@ dist: dist/kynaptik-http.zip dist/kynaptik-graphql.zip
 
 $(GOPATH)/bin/golangci-lint:
 	@echo "installing $(notdir $@)"
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0
 
 $(GOPATH)/bin/goconvey:
 	@echo "installing $(notdir $@)"
