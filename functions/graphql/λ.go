@@ -105,7 +105,7 @@ func (a Action) DoAction(ctx context.Context) (interface{}, error) {
 	client := http.Client{
 		Transport: &loghttp.Transport{
 			LogRequest:  util.HTTPRequestLogger(),
-			LogResponse: util.HTTPResponseLogger(result), //nolint:bodyclose
+			LogResponse: util.HTTPResponseLogger(&result), //nolint:bodyclose
 		},
 	}
 

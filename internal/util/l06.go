@@ -91,12 +91,12 @@ func HTTPRequestLogger() func(request *http.Request) {
 
 // HTTPResponseLogger  is a convenient higher-order function which returns a function ready to be used as
 // parameter for LogResponse field of http.Transport.
-func HTTPResponseLogger(result httpstat.Result) func(response *http.Response) {
+func HTTPResponseLogger(result *httpstat.Result) func(response *http.Response) {
 	return func(response *http.Response) {
 		log.Ctx(response.Request.Context()).
 			Info().
 			Object("response", ResponseToLogObjectMarshaller(response)).
-			Object("stats", ResultToLogObjectMarshaller(&result)).
+			Object("stats", ResultToLogObjectMarshaller(result)).
 			Msgf("📥 %d %s", response.StatusCode, response.Request.URL)
 	}
 }
