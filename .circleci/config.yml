@@ -13,8 +13,8 @@ jobs:
             - v1-pkg-cache
 
       - run: go get github.com/mattn/goveralls
-      - run: make install-tools
-      - run: make install-deps
+      - run: make tools
+      - run: make deps
       - run: make lint
       - run: make build
       - run: env GO111MODULE=on go test -v -cover -coverprofile=coverage.out
