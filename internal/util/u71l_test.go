@@ -244,3 +244,65 @@ func TestFindFilename(t *testing.T) {
 		}
 	})
 }
+
+func TestOpenResource(t *testing.T) {
+	const (
+		resourceFolder  = "resource"
+		namespace       = "namespace"
+		resourceName    = "resourceName"
+		resourceContent = "Hello world!"
+	)
+	Convey("Considering the OpenResource function", t, func(c C) {
+		cases := []struct {
+			filePath        string
+			expectedSuccess bool
+		}{
+			{
+				filePath:        fmt.Sprintf("/%s/%s/%s", resourceFolder, namespace, resourceName),
+				expectedSuccess: true,
+			},
+			{
+				filePath:        fmt.Sprintf("/%s/%s/%s", resourceFolder, "unknown", resourceName),
+				expectedSuccess: false,
+			},
+		}
+
+		for n, c := range cases {
+			Convey(fmt.Sprintf("Considering a virtual filesystem containing the file '%s' (case %d)", c.filePath, n), func() {
+				fs := afero.NewMemMapFs()
+
+				err := fs.MkdirAll(path.Dir(c.filePath), os.ModePerm)
+				So(err, ShouldBeNil)
+
+				file, err := fs.OpenFile(c.filePath, os.O_CREATE, os.ModePerm)
+				So(err, ShouldBeNil)
+
+				_, err = file.WriteString(resourceContent)
+				So(err, ShouldBeNil)
+
+				_ = file.Close()
+
+				Convey(fmt.Sprintf("When calling function (case %d)", n), func() {
+					result, err := OpenResource(fs, resourceFolder, namespace, resourceName)
+					So(err, ShouldBeNil)
+
+					Convey(fmt.Sprintf("Then function success shall be %t", c.expectedSuccess), func() {
+						if c.expectedSuccess {
+							So(result, ShouldNotBeNil)
+
+							Convey("And resource content shall be the expected one", func() {
+								bytes, err := ioutil.ReadAll(result)
+
+								So(err, ShouldBeNil)
+								So(string(bytes), ShouldEqual, resourceContent)
+							})
+
+						} else {
+							So(result, ShouldBeNil)
+						}
+					})
+				})
+			})
+		}
+	})
+}
