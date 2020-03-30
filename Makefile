@@ -3,7 +3,7 @@
 
 GO111MODULE=on
 
-SRC_CORE=$(shell ls | grep '.*\.go' | grep -v 'λ.*\.go' | grep -v '.*_test')
+LIB_CORE=$(shell find internal pkg -name  "*.go" | grep -v '.*_test')
 
 default: build
 
@@ -26,13 +26,14 @@ install-tools:
 	fi
 
 install-deps:
-	go get .
+	go mod download
 
 build:
-	go build -buildmode=plugin -o build/kynaptik.so
+	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-http.so functions/http/*.go
+	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-graphql.so functions/graphql/*.go
 
 test: build
-	go test -v -covermode=count -coverprofile c.out .
+	go test -v -covermode=count -coverprofile c.out ./...
 
 lint: install-tools
 	$(GOPATH)/bin/golangci-lint run
@@ -52,6 +53,14 @@ certificates: install-tools clean-certificates
 clean-certificates:
 	rm -f etc/cert/*
 
-dist:
-	zip -r dist/kynaptik-http.zip README.md $(SRC_CORE) "λh77p.go" go.mod go.sum
-	zip -r dist/kynaptik-graphql.zip README.md $(SRC_CORE) "λ6r4phql.go" go.mod go.sum
+dist: dist/kynaptik-http.zip dist/kynaptik-graphql.zip
+
+%.zip:
+	NAME=$(basename $(notdir $@)); \
+	mkdir -p build/$$NAME; \
+	tar cpf - $(LIB_CORE) go.mod go.sum | tar xpf - -C build/$$NAME; \
+	cp functions/http/λ.go build/$$NAME/; \
+	cd build/$$NAME && zip -r ../../dist/$$NAME.zip .
+
+
+
