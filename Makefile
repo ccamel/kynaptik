@@ -23,7 +23,7 @@ lint: tools
 	$(GOPATH)/bin/golangci-lint run
 
 goconvey: tools
-	$(GOPATH)/bin/goconvey -excludedDirs build,config,doc,dist,specs,vendor
+	$(GOPATH)/bin/goconvey -cover -excludedDirs build,dist,doc,etc,specs,vendor
 
 tidy:
 	go mod tidy && go mod verify
