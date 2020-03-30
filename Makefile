@@ -10,11 +10,11 @@ default: build
 tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
 
 deps:
-	go mod download
+	go get ./...
 
 build: deps
-	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-http.so functions/http/*.go
-	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-graphql.so functions/graphql/*.go
+	go build -buildmode=plugin -v -o build/kynaptik-http.so ./functions/http/...
+	go build -buildmode=plugin -v -o build/kynaptik-graphql.so ./functions/graphql/...
 
 test: build
 	go test -v -covermode=count -coverprofile c.out ./...
