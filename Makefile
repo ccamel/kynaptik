@@ -7,31 +7,31 @@ LIB_CORE=$(shell find internal pkg -name  "*.go" | grep -v '.*_test')
 
 default: build
 
-install-tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
+tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
 
-install-deps:
+deps:
 	go mod download
 
-build: install-deps
+build: deps
 	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-http.so functions/http/*.go
 	go build -mod=vendor -buildmode=plugin -i -v -o build/kynaptik-graphql.so functions/graphql/*.go
 
 test: build
 	go test -v -covermode=count -coverprofile c.out ./...
 
-lint: install-tools
+lint: tools
 	$(GOPATH)/bin/golangci-lint run
 
-goconvey: install-tools
+goconvey: tools
 	$(GOPATH)/bin/goconvey -excludedDirs build,config,doc,dist,specs,vendor
 
 tidy:
 	go mod tidy && go mod verify
 
-thanks: install-tools
+thanks: tools
 	$(GOPATH)/bin/gothanks -y | grep -v "is already"
 
-certificates: install-tools clean-certificates
+certificates: tools clean-certificates
 	cd etc/cert && $(GOPATH)/bin/generate-tls-cert --host localhost --duration 876000h
 
 clean:
