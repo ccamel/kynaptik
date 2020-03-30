@@ -22,8 +22,6 @@ import (
 	"github.com/spf13/afero"
 )
 
-const MediaTypeJSON = "application/json"
-
 type environment map[string]interface{}
 
 // Invokeλ performs the invocation of the λ function.
@@ -214,7 +212,7 @@ func checkContentLengthHandler() alice.Constructor {
 func checkContentTypeHandler() alice.Constructor {
 	return func(Ͱ http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			contentType := r.Header.Get("Content-type")
+			contentType := r.Header.Get(util.HeaderContentType)
 
 			if contentType != "" {
 				for _, v := range strings.Split(contentType, ",") {
@@ -222,11 +220,11 @@ func checkContentTypeHandler() alice.Constructor {
 					if err != nil {
 						break
 					}
-					if t == MediaTypeJSON {
+					if t == util.MediaTypeApplicationJSON {
 						hlog.
 							FromRequest(r).
 							Info().
-							Str("content-type", MediaTypeJSON).
+							Str(util.HeaderContentType, util.MediaTypeApplicationJSON).
 							Msg("☑️️ valid media type")
 
 						Ͱ.ServeHTTP(w, r)
@@ -239,7 +237,7 @@ func checkContentTypeHandler() alice.Constructor {
 			_, _ = jsend.
 				Wrap(w).
 				Status(http.StatusUnsupportedMediaType).
-				Message(fmt.Sprintf("unsupported media type. Expected: %s", MediaTypeJSON)).
+				Message(fmt.Sprintf("unsupported media type. Expected: %s", util.MediaTypeApplicationJSON)).
 				Data(&ResponseData{"check-content-type"}).
 				Send()
 		})

@@ -16,6 +16,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/ccamel/kynaptik/internal/util"
 	"github.com/phayes/freeport"
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
@@ -43,7 +44,7 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 			URI:    fmt.Sprintf("http://127.0.0.1:%d", port),
 			Method: "POST",
 			Headers: map[string]string{
-				"Content-Type": "text/plain",
+				util.HeaderContentType: util.MediaTypeTextPlain,
 				"X-Userid":     "Rmlyc3Qgb3B0aW9u=",
 			},
 			Body: "Hello John Doe!",
@@ -56,8 +57,8 @@ func httpSuccessfulPostWithHeadersInvocationFixture() httpFixture {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					c.So(r.URL.String(), ShouldEqual, "/")
 					c.So(r.Method, ShouldEqual, "POST")
-					c.So(r.Header, ShouldContainKey, "Content-Type")
-					c.So(r.Header.Get("Content-Type"), ShouldEqual, "text/plain")
+					c.So(r.Header, ShouldContainKey, util.HeaderContentType)
+					c.So(r.Header.Get(util.HeaderContentType), ShouldEqual, util.MediaTypeTextPlain)
 					c.So(r.Header.Get("X-Userid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
 
 					payload, err := ioutil.ReadAll(r.Body)

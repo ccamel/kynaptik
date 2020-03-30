@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ccamel/kynaptik/internal/util"
 	"github.com/phayes/freeport"
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
@@ -49,8 +50,8 @@ func graphqlSuccessfulPostWithNoVariablesFixture() graphqlFixture {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					c.So(r.URL.String(), ShouldEqual, "/graphql")
 					c.So(r.Method, ShouldEqual, "POST")
-					c.So(r.Header, ShouldContainKey, "Content-Type")
-					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
+					c.So(r.Header, ShouldContainKey, util.HeaderContentType)
+					c.So(r.Header.Get(util.HeaderContentType), ShouldEqual, util.MediaTypeApplicationJSON)
 
 					payload, err := ioutil.ReadAll(r.Body)
 					c.So(err, ShouldBeNil)
@@ -112,8 +113,8 @@ func graphqlSuccessfulPostWithHeadersAndVariablesInvocationFixture() graphqlFixt
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					c.So(r.URL.String(), ShouldEqual, "/graphql")
 					c.So(r.Method, ShouldEqual, "POST")
-					c.So(r.Header, ShouldContainKey, "Content-Type")
-					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
+					c.So(r.Header, ShouldContainKey, util.HeaderContentType)
+					c.So(r.Header.Get(util.HeaderContentType), ShouldEqual, util.MediaTypeApplicationJSON)
 					c.So(r.Header.Get("X-Userid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
 
 					payload, err := ioutil.ReadAll(r.Body)

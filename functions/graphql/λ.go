@@ -91,7 +91,7 @@ func (a Action) DoAction(ctx context.Context) (interface{}, error) {
 		request.Header.Set(k, v)
 	}
 
-	request.Header.Set("Content-Type", "application/json")
+	request.Header.Set(util.HeaderContentType, util.MediaTypeApplicationJSON)
 
 	var result httpstat.Result
 
