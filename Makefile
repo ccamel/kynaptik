@@ -3,55 +3,66 @@
 
 GO111MODULE=on
 
-SRC_CORE=$(shell ls | grep '.*\.go' | grep -v 'λ.*\.go' | grep -v '.*_test')
+LIB_CORE=$(shell find internal pkg -name  "*.go" | grep -v '.*_test')
 
 default: build
 
-install-tools:
-	@if [ ! -f $(GOPATH)/bin/golangci-lint ]; then \
-		echo "installing golangci-lint..."; \
-		curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.20.0; \
-	fi
-	@if [ ! -f $(GOPATH)/bin/goconvey ]; then \
-		echo "installing goconvey..."; \
-		go get github.com/smartystreets/goconvey; \
-	fi
-	@if [ ! -f $(GOPATH)/bin/gothanks ]; then \
-		echo "installing gothanks..."; \
-		go get -u github.com/psampaz/gothanks; \
-	fi
-	@if [ ! -f $(GOPATH)/bin/generate-tls-cert ]; then \
-		echo "installing generate-tls-cert... $(GOPATH)"; \
-		go get github.com/Shyp/generate-tls-cert; \
-	fi
+tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
 
-install-deps:
-	go get .
+deps:
+	go get ./...
 
-build:
-	go build -buildmode=plugin -o build/kynaptik.so
+build: deps
+	go build -buildmode=plugin -v -o build/kynaptik-http.so ./functions/http/...
+	go build -buildmode=plugin -v -o build/kynaptik-graphql.so ./functions/graphql/...
 
 test: build
-	go test -v -covermode=count -coverprofile c.out .
+	go test -v -covermode=count -coverprofile c.out ./...
 
-lint: install-tools
+lint: tools
 	$(GOPATH)/bin/golangci-lint run
 
-goconvey: install-tools
-	$(GOPATH)/bin/goconvey -excludedDirs build,config,doc,dist,specs,vendor
+goconvey: tools
+	$(GOPATH)/bin/goconvey -cover -excludedDirs build,dist,doc,etc,specs,vendor
 
 tidy:
 	go mod tidy && go mod verify
 
-thanks: install-tools
+thanks: tools
 	$(GOPATH)/bin/gothanks -y | grep -v "is already"
 
-certificates: install-tools clean-certificates
+certificates: tools clean-certificates
 	cd etc/cert && $(GOPATH)/bin/generate-tls-cert --host localhost --duration 876000h
+
+clean:
+	find build \! -name '.keepme' -delete
+	find dist \! -name '.keepme' -delete
 
 clean-certificates:
 	rm -f etc/cert/*
 
-dist:
-	zip -r dist/kynaptik-http.zip README.md $(SRC_CORE) "λh77p.go" go.mod go.sum
-	zip -r dist/kynaptik-graphql.zip README.md $(SRC_CORE) "λ6r4phql.go" go.mod go.sum
+dist: dist/kynaptik-http.zip dist/kynaptik-graphql.zip
+
+%.zip:
+	NAME=$(basename $(notdir $@)); \
+	mkdir -p build/$$NAME; \
+	tar cpf - $(LIB_CORE) go.mod go.sum | tar xpf - -C build/$$NAME; \
+	cp functions/http/λ.go build/$$NAME/; \
+	cd build/$$NAME && zip -r ../../dist/$$NAME.zip .
+
+$(GOPATH)/bin/golangci-lint:
+	@echo "installing $(notdir $@)"
+	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0
+
+$(GOPATH)/bin/goconvey:
+	@echo "installing $(notdir $@)"
+	go get github.com/smartystreets/goconvey
+
+$(GOPATH)/bin/gothanks:
+	@echo "installing $(notdir $@)"
+	go get -u github.com/psampaz/gothanks
+
+$(GOPATH)/bin/generate-tls-cert:
+	@echo "installing $(notdir $@)"
+	go get github.com/Shyp/generate-tls-cert
+

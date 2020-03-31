@@ -1,4 +1,4 @@
-package main
+package kynaptik
 
 // ResponseData specifies the "data" structure of the response returned by the function, according to
 // [JSONRequest](http://www.json.org/JSONRequest.html) specification.

@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ccamel/kynaptik/internal/util"
 	"github.com/phayes/freeport"
 	"github.com/rs/zerolog/log"
 	. "github.com/smartystreets/goconvey/convey"
@@ -22,7 +23,7 @@ type graphqlFixtureSupplier func() graphqlFixture
 
 type graphqlFixture struct {
 	ctx           context.Context
-	graphqlAction GraphQLAction
+	graphqlAction Action
 	// arrange is a function which initializes the fixture and in returns provides a function which finalizes (clean)
 	// that fixture when called
 	arrange func(c C, ctx context.Context) func()
@@ -36,7 +37,7 @@ func graphqlSuccessfulPostWithNoVariablesFixture() graphqlFixture {
 
 	return graphqlFixture{
 		ctx: context.Background(),
-		graphqlAction: GraphQLAction{
+		graphqlAction: Action{
 			URI:     fmt.Sprintf("graphql://127.0.0.1:%d/graphql", port),
 			Headers: map[string]string{},
 			Query:   "{foo}",
@@ -49,8 +50,8 @@ func graphqlSuccessfulPostWithNoVariablesFixture() graphqlFixture {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					c.So(r.URL.String(), ShouldEqual, "/graphql")
 					c.So(r.Method, ShouldEqual, "POST")
-					c.So(r.Header, ShouldContainKey, "Content-Type")
-					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
+					c.So(r.Header, ShouldContainKey, util.HeaderContentType)
+					c.So(r.Header.Get(util.HeaderContentType), ShouldEqual, util.MediaTypeApplicationJSON)
 
 					payload, err := ioutil.ReadAll(r.Body)
 					c.So(err, ShouldBeNil)
@@ -88,7 +89,7 @@ func graphqlSuccessfulPostWithHeadersAndVariablesInvocationFixture() graphqlFixt
 
 	return graphqlFixture{
 		ctx: context.Background(),
-		graphqlAction: GraphQLAction{
+		graphqlAction: Action{
 			URI: fmt.Sprintf("graphql://127.0.0.1:%d/graphql", port),
 			Headers: map[string]string{
 				"X-Userid": "Rmlyc3Qgb3B0aW9u=",
@@ -112,8 +113,8 @@ func graphqlSuccessfulPostWithHeadersAndVariablesInvocationFixture() graphqlFixt
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					c.So(r.URL.String(), ShouldEqual, "/graphql")
 					c.So(r.Method, ShouldEqual, "POST")
-					c.So(r.Header, ShouldContainKey, "Content-Type")
-					c.So(r.Header.Get("Content-Type"), ShouldEqual, "application/json")
+					c.So(r.Header, ShouldContainKey, util.HeaderContentType)
+					c.So(r.Header.Get(util.HeaderContentType), ShouldEqual, util.MediaTypeApplicationJSON)
 					c.So(r.Header.Get("X-Userid"), ShouldEqual, "Rmlyc3Qgb3B0aW9u=")
 
 					payload, err := ioutil.ReadAll(r.Body)
@@ -175,16 +176,16 @@ func TestGraphqlFunction(t *testing.T) {
 }
 
 func TestGraphqlActionFactory(t *testing.T) {
-	Convey("When calling GraphQLActionFactory", t, func(c C) {
-		action := GraphQLActionFactory()
+	Convey("When calling ActionFactory", t, func(c C) {
+		action := ActionFactory()
 
-		Convey(fmt.Sprintf("Then action created is an GraphQLAction with default values"), func() {
+		Convey(fmt.Sprintf("Then action created is an Action with default values"), func() {
 
-			So(action, ShouldHaveSameTypeAs, &GraphQLAction{})
-			So(action.(*GraphQLAction).URI, ShouldEqual, "")
-			So(action.(*GraphQLAction).GetURI(), ShouldEqual, "")
-			So(action.(*GraphQLAction).Headers, ShouldResemble, map[string]string{})
-			So(action.(*GraphQLAction).Variables, ShouldResemble, map[string]interface{}{})
+			So(action, ShouldHaveSameTypeAs, &Action{})
+			So(action.(*Action).URI, ShouldEqual, "")
+			So(action.(*Action).GetURI(), ShouldEqual, "")
+			So(action.(*Action).Headers, ShouldResemble, map[string]string{})
+			So(action.(*Action).Variables, ShouldResemble, map[string]interface{}{})
 		})
 
 		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
@@ -200,15 +201,15 @@ func TestGraphQLEntryPoint(t *testing.T) {
 	Convey("When calling 'GraphQLEntryPoint' function", t, func(c C) {
 		Convey("Then it shall panic (this is expected)", func() {
 			So(func() {
-				GraphqlEntryPoint(nil, nil)
+				EntryPoint(nil, nil)
 			}, ShouldPanic)
 		})
 	})
 }
 
 func TestGraphQLConfigFactory(t *testing.T) {
-	Convey("When calling 'GraphQLConfigFactory' function", t, func(c C) {
-		factory := GraphQLConfigFactory()
+	Convey("When calling 'ConfigFactory' function", t, func(c C) {
+		factory := ConfigFactory()
 		Convey("Then configuration provided shall be the expected one", func() {
 			So(factory.PreCondition, ShouldEqual, "true")
 		})

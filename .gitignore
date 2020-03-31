@@ -5,11 +5,18 @@
 *.dylib
 *.zip
 
+# MacOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
 # Test binary, build with `go test -c`
 *.test
 
-# Output of the go coverage tool, specifically when used with LiteIDE
+# Output of the go coverage tool
 *.out
+coverage.txt
+c.out
 
 # Static generation
 static/*.go
@@ -19,4 +26,7 @@ static/*.go
 
 vendor/
 
-coverage.txt
+# ouput directories
+build/
+dist/
+
