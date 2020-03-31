@@ -2,6 +2,7 @@ package util
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/rs/zerolog"
@@ -111,6 +112,28 @@ func TestHTTPRequestLogger(t *testing.T) {
 				req, err := http.NewRequest("GET", "/", nil)
 				So(err, ShouldBeNil)
 				logger(req) // we can't do much more, just check it doesn't panic
+			})
+		})
+	})
+}
+
+func TestHTTPResponseLogger(t *testing.T) {
+	Convey("Considering the HTTPResponseLogger", t, func(c C) {
+		Convey("When calling function", func(c C) {
+			logger := HTTPResponseLogger(&httpstat.Result{})
+
+			Convey("Then result shall log", func(c C) {
+				So(logger, ShouldNotBeNil)
+
+				req, err := http.NewRequest("GET", "/", nil)
+				So(err, ShouldBeNil)
+
+				rr := httptest.NewRecorder()
+				rr.WriteHeader(200)
+				rr.Result().Request = req
+				_, _ = rr.WriteString("Hello world!")
+
+				logger(rr.Result()) // we can't do much more, just check it doesn't panic
 			})
 		})
 	})
