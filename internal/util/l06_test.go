@@ -62,3 +62,21 @@ func TestHTTPHeaderToLogObjectMarshaller(t *testing.T) {
 		})
 	})
 }
+
+func TestRequestToLogObjectMarshaller(t *testing.T) {
+	Convey("Considering the RequestToLogObjectMarshaller", t, func(c C) {
+		Convey("When calling function", func(c C) {
+			req, err := http.NewRequest("GET", "/", nil)
+			So(err, ShouldBeNil)
+
+			logger := RequestToLogObjectMarshaller(req)
+
+			Convey("Then result shall be a marshallable Zerolog object", func(c C) {
+				So(logger, ShouldNotBeNil)
+
+				e := zerolog.Dict()
+				logger.MarshalZerologObject(e) // we can't do much more, just check it doesn't panic
+			})
+		})
+	})
+}
