@@ -62,8 +62,8 @@ func ResponseToLogObjectMarshaller(resp *http.Response) zerolog.LogObjectMarshal
 				Str("status", resp.Status).
 				Object("headers", HTTPHeaderToLogObjectMarshaller(resp.Header))
 
-			responseCtx := resp.Request.Context()
-			if start, ok := responseCtx.Value(loghttp.ContextKeyRequestStart).(time.Time); ok {
+			ctx := resp.Request.Context()
+			if start, ok := ctx.Value(loghttp.ContextKeyRequestStart).(time.Time); ok {
 				e.Dur("duration", roundtime.Duration(time.Since(start), 2))
 			}
 		}
