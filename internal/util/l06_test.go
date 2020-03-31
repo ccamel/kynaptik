@@ -99,3 +99,19 @@ func TestMapToLogObjectMarshaller(t *testing.T) {
 		})
 	})
 }
+
+func TestHTTPRequestLogger(t *testing.T) {
+	Convey("Considering the HTTPRequestLogger", t, func(c C) {
+		Convey("When calling function", func(c C) {
+			logger := HTTPRequestLogger()
+
+			Convey("Then result shall log", func(c C) {
+				So(logger, ShouldNotBeNil)
+
+				req, err := http.NewRequest("GET", "/", nil)
+				So(err, ShouldBeNil)
+				logger(req) // we can't do much more, just check it doesn't panic
+			})
+		})
+	})
+}
