@@ -80,3 +80,22 @@ func TestRequestToLogObjectMarshaller(t *testing.T) {
 		})
 	})
 }
+
+func TestMapToLogObjectMarshaller(t *testing.T) {
+	Convey("Considering the MapToLogObjectMarshaller", t, func(c C) {
+		Convey("When calling function", func(c C) {
+			m := map[string]string{
+				"foo": "bar",
+			}
+
+			logger := MapToLogObjectMarshaller(m)
+
+			Convey("Then result shall be a marshallable Zerolog object", func(c C) {
+				So(logger, ShouldNotBeNil)
+
+				e := zerolog.Dict()
+				logger.MarshalZerologObject(e) // we can't do much more, just check it doesn't panic
+			})
+		})
+	})
+}
