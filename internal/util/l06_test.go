@@ -1,10 +1,13 @@
 package util
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
+	"github.com/motemen/go-loghttp"
 	"github.com/rs/zerolog"
 	. "github.com/smartystreets/goconvey/convey"
 	"github.com/tcnksm/go-httpstat"
@@ -71,6 +74,29 @@ func TestRequestToLogObjectMarshaller(t *testing.T) {
 			So(err, ShouldBeNil)
 
 			logger := RequestToLogObjectMarshaller(req)
+
+			Convey("Then result shall be a marshallable Zerolog object", func(c C) {
+				So(logger, ShouldNotBeNil)
+
+				e := zerolog.Dict()
+				logger.MarshalZerologObject(e) // we can't do much more, just check it doesn't panic
+			})
+		})
+	})
+}
+
+func TestResponseToLogObjectMarshaller(t *testing.T) {
+	Convey("Considering the ResponseToLogObjectMarshaller", t, func(c C) {
+		Convey("When calling function", func(c C) {
+			req, err := http.NewRequestWithContext(context.WithValue(context.Background(), loghttp.ContextKeyRequestStart, time.Now()), "GET", "/", nil)
+			So(err, ShouldBeNil)
+
+			rr := httptest.NewRecorder()
+			rr.WriteHeader(200)
+			rr.Result().Request = req
+			_, _ = rr.WriteString("Hello world!")
+
+			logger := ResponseToLogObjectMarshaller(rr.Result())
 
 			Convey("Then result shall be a marshallable Zerolog object", func(c C) {
 				So(logger, ShouldNotBeNil)
