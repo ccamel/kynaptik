@@ -523,7 +523,7 @@ func doActionHandler() http.Handler {
 		config := r.Context().Value(ctxKeyConfig).(Config)
 
 		ctx := r.Context()
-		cancel := func() {}
+		cancel := func() { /* noop by default */ }
 
 		if config.Timeout > 0 {
 			ctx, cancel = context.WithTimeout(ctx, config.Timeout*time.Millisecond)
