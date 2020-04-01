@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: default
-  name: kynaptik-http-configmap
+  name: webhook
 data:
   function-spec.yml: |
     preCondition: |

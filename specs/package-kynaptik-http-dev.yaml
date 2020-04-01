@@ -1,0 +1,25 @@
+include:
+- ./dist/kynaptik-http.zip
+kind: ArchiveUploadSpec
+name: dist-kynaptik-http-zip-I3fy
+
+---
+apiVersion: fission.io/v1
+kind: Package
+metadata:
+  creationTimestamp: null
+  name: kynaptik-http-dev
+  namespace: default
+spec:
+  deployment:
+    checksum: {}
+  environment:
+    name: go
+    namespace: default
+  source:
+    checksum: {}
+    type: url
+    url: archive://dist-kynaptik-http-zip-I3fy
+status:
+  buildstatus: pending
+  lastUpdateTimestamp: "2020-04-01T19:07:17Z"
