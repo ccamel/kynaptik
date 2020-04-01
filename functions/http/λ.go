@@ -22,7 +22,7 @@ import (
 const MaxRedirects = 50
 
 type Action struct {
-	URI     string            `yaml:"uri" validate:"required,uri,scheme=graphql|scheme=graphqls"`
+	URI     string            `yaml:"uri" validate:"required,uri,scheme=http|scheme=https"`
 	Method  string            `yaml:"method" validate:"required,min=3"`
 	Headers map[string]string `yaml:"headers"`
 	Body    string            `yaml:"body"`
