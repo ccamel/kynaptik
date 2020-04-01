@@ -35,8 +35,8 @@ certificates: tools clean-certificates
 	cd etc/cert && $(GOPATH)/bin/generate-tls-cert --host localhost --duration 876000h
 
 clean:
-	find build \! -name '.keepme' -delete
-	find dist \! -name '.keepme' -delete
+	rm -rf build
+	rm -rf dist
 
 clean-certificates:
 	rm -f etc/cert/*
@@ -45,8 +45,9 @@ dist: dist/kynaptik-http.zip dist/kynaptik-graphql.zip
 
 %.zip:
 	NAME=$(basename $(notdir $@)); \
-	PKG=$(word 2,$(subst -, ,$@)); \
+	PKG=$(word 2,$(subst -, ,$(basename $@))); \
 	mkdir -p build/$$NAME; \
+	mkdir -p dist; \
 	tar cpf - $(LIB_CORE) go.mod go.sum | tar xpf - -C build/$$NAME; \
 	cp functions/$$PKG/λ.go build/$$NAME/; \
 	cd build/$$NAME && zip -r ../../dist/$$NAME.zip .
