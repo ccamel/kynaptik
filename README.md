@@ -1,6 +1,5 @@
 # Кynaptiꓘ
 
-![under-construction](https://img.shields.io/badge/%F0%9F%9A%A7-under%20construction-important)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/ef38ed828c4c494f83e63cb3f65d0e30)](https://app.codacy.com/app/ccamel/kynaptik?utm_source=github.com&utm_medium=referral&utm_content=ccamel/kynaptik&utm_campaign=Badge_Grade_Dashboard)
 [![build-status](https://circleci.com/gh/ccamel/kynaptik/tree/master.svg?style=shield)](https://circleci.com/gh/ccamel/kynaptik/tree/master)
 [![coverage-status](https://coveralls.io/repos/github/ccamel/kynaptik/badge.svg?branch=master&kill_cache=1)](https://coveralls.io/github/ccamel/kynaptik?branch=master)
@@ -10,6 +9,7 @@
 [![technical-debt](https://sonarcloud.io/api/project_badges/measure?project=ccamel_kynaptik&metric=sqale_index)](https://sonarcloud.io/dashboard?id=ccamel_kynaptik)
 [![stackshare](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/ccamel/kynaptik)
 [![go-version](https://img.shields.io/github/go-mod/go-version/ccamel/kynaptik)](https://golang.org/)
+[![release](https://img.shields.io/github/v/release/ccamel/kynaptik)](https://github.com/ccamel/kynaptik/releases)
 
 > Serverless Function on [Kubernetes][kubernetes] (through [Fission][fission]) providing a generic and configurable mean to trigger _actions_ from incoming _events_.
 
