@@ -27,14 +27,30 @@ The `action` yaml element supports the following elements:
 
 The environment variable `response` is the [HTTP response](https://golang.org/pkg/net/http/#Response). 
 
-## Example
+## Installation
+
+### Package deployment
+
+Before creating a function, you’ll need an environment for the Go language. Read [environments](https://docs.fission.io/docs/usage/environments/) if you haven’t already.
+
+Create a new package from a released archive:
+
+```sh
+> fission pkg create --name kynaptik-http --env go --source https://github.com/ccamel/kynaptik/releases/download/v1.0.0/kynaptik-http.zip
+```
+
+### Configuration
+
+The behavior of the function is specified by a k8s `ConfigMap` which shall contain the key `function-spec.yml` under which goes all the configuration.
+
+For instance, the following `ConfigMap` configures a function which perfoms a call to [Webhook.site](https://webhook.site/), you can use to test and debug Webhooks and HTTP requests.
 
 ```yaml
 apiVersion: v1
 kind: ConfigMap
 metadata:
   namespace: default
-  name: kynaptik-http-configmap
+  name: webhook
 data:
   function-spec.yml: |
     timeout: 10000
@@ -56,3 +72,27 @@ data:
           followRedirect: true
           maxRedirects: 10
 ```
+
+### Function creation
+
+```sh
+> fission fn create --name webhook --env go --pkgname kynaptik-http --entrypoint EntryPoint --configmap webhook
+```
+
+### Function test
+
+Go to the URL https://webhook.site and get the unique session id provided, for instance:
+
+```
+https://webhook.site/01f84643-93ba-4407-9aa9-ffffffffffff
+```
+
+Now you can test the function:
+
+```sh
+> fission fn test --name webhook --method=POST --body='{ "key": "01f84643-93ba-4407-9aa9-ffffffffffff", "message":"hello world!" }' --header="Content-Type: application/json"
+
+{"data":{"stage":"match-post-condition"},"message":"HTTP call succeeded","status":"success"}
+```
+
+You should view the details of the request on webhook.site page.
