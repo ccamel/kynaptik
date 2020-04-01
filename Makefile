@@ -45,9 +45,10 @@ dist: dist/kynaptik-http.zip dist/kynaptik-graphql.zip
 
 %.zip:
 	NAME=$(basename $(notdir $@)); \
+	PKG=$(word 2,$(subst -, ,$@)); \
 	mkdir -p build/$$NAME; \
 	tar cpf - $(LIB_CORE) go.mod go.sum | tar xpf - -C build/$$NAME; \
-	cp functions/http/λ.go build/$$NAME/; \
+	cp functions/$$PKG/λ.go build/$$NAME/; \
 	cd build/$$NAME && zip -r ../../dist/$$NAME.zip .
 
 $(GOPATH)/bin/golangci-lint:
