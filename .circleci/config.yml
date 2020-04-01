@@ -21,6 +21,11 @@ jobs:
       - run: env GO111MODULE=on go test -v -cover -coverprofile=coverage.out ./...
       - run: env GO111MODULE=on goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
+      - persist_to_workspace:
+          root: dist/
+          paths:
+          - "*.zip"
+
       - save_cache:
           key: v1-pkg-cache
           paths:
