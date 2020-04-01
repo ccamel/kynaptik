@@ -9,6 +9,7 @@
 [![lines-of-code](https://sonarcloud.io/api/project_badges/measure?project=ccamel_kynaptik&metric=ncloc)](https://sonarcloud.io/dashboard?id=ccamel_kynaptik)
 [![technical-debt](https://sonarcloud.io/api/project_badges/measure?project=ccamel_kynaptik&metric=sqale_index)](https://sonarcloud.io/dashboard?id=ccamel_kynaptik)
 [![stackshare](http://img.shields.io/badge/tech-stack-0690fa.svg?style=flat)](https://stackshare.io/ccamel/kynaptik)
+[![go-version](https://img.shields.io/github/go-mod/go-version/ccamel/kynaptik)](https://golang.org/)
 
 > Serverless Function on [Kubernetes][kubernetes] (through [Fission][fission]) providing a generic and configurable mean to trigger _actions_ from incoming _events_.
 
