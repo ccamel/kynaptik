@@ -17,6 +17,7 @@ jobs:
       - run: make deps
       - run: make lint
       - run: make build
+      - run: make dist
       - run: env GO111MODULE=on go test -v -cover -coverprofile=coverage.out ./...
       - run: env GO111MODULE=on goveralls -coverprofile=coverage.out -service=circle-ci -repotoken=$COVERALLS_TOKEN
 
@@ -33,6 +34,18 @@ jobs:
       - checkout
       - run: make thanks
 
+  publish-github-release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - attach_workspace:
+          at: ./dist
+      - run:
+          name: "Publish Release on GitHub"
+          command: |
+            echo "about to publish to tag ${CIRCLE_TAG}"
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${CIRCLE_TAG} ./dist/*.zip
+
 workflows:
   version: 2
   make:
@@ -42,3 +55,12 @@ workflows:
           filters:
             branches:
               only: master
+
+      - publish-github-release:
+          requires:
+            - build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /^v\d+\.\d+\.\d+$/
