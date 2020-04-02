@@ -5,6 +5,8 @@ GO111MODULE=on
 
 LIB_CORE=$(shell find internal pkg -name  "*.go" | grep -v '.*_test')
 
+FUNCTIONS=$(sort $(notdir $(abspath $(wildcard functions/*/.))))
+
 default: build
 
 tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
@@ -12,9 +14,7 @@ tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks
 deps:
 	go get ./...
 
-build: deps
-	go build -buildmode=plugin -v -o build/kynaptik-http.so ./functions/http/...
-	go build -buildmode=plugin -v -o build/kynaptik-graphql.so ./functions/graphql/...
+build: $(addprefix build-,$(FUNCTIONS))
 
 test: build
 	go test -v -covermode=count -coverprofile c.out ./...
@@ -41,11 +41,17 @@ clean:
 clean-certificates:
 	rm -f etc/cert/*
 
-dist: dist/kynaptik-http.zip dist/kynaptik-graphql.zip
+dist: $(addprefix pkg-,$(FUNCTIONS))
 
-%.zip:
-	NAME=$(basename $(notdir $@)); \
-	PKG=$(word 2,$(subst -, ,$(basename $@))); \
+build-%:
+	@PKG=$(word 2,$(subst -, ,$@)); \
+	echo "⚙️ building function kynaptik-$$PKG"; \
+	go build -buildmode=plugin -v -o build/kynaptik-$$PKG.so ./functions/$$PKG/...
+
+pkg-%:
+	@PKG=$(word 2,$(subst -, ,$@)); \
+	NAME=kynaptik-$$PKG.zip; \
+	echo "⚙️ building package archive for kynaptik-$$PKG"; \
 	mkdir -p build/$$NAME; \
 	mkdir -p dist; \
 	tar cpf - $(LIB_CORE) go.mod go.sum | tar xpf - -C build/$$NAME; \
