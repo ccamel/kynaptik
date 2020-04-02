@@ -77,6 +77,12 @@ func logIncomingRequestHandler() alice.Constructor {
 				Msg("⚙️ λ invoked")
 
 			Ͱ.ServeHTTP(w, r)
+
+			hlog.
+				FromRequest(r).
+				Info().
+				Object("request", util.RequestToLogObjectMarshaller(r)).
+				Msg("🏁️ λ done")
 		})
 	}
 }
