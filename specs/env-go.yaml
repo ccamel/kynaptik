@@ -1,20 +1,17 @@
-apiVersion: fv1.io/v1
+apiVersion: fission.io/v1
 kind: Environment
 metadata:
   creationTimestamp: null
   name: go
   namespace: default
 spec:
-  TerminationGracePeriod: 360
   builder:
     command: build
-    image: fission/go-builder-1.12
+    image: fission/go-builder-1.13
+  imagepullsecret: ""
   keeparchive: false
   poolsize: 3
   resources: {}
   runtime:
-    functionendpointport: 0
-    image: fission/go-env-1.12
-    loadendpointpath: ""
-    loadendpointport: 0
-  version: 2
+    image: fission/go-env-1.13
+  version: 3

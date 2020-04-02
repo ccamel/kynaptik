@@ -1,15 +1,15 @@
-apiVersion: fv1.io/v1
+apiVersion: fission.io/v1
 kind: MessageQueueTrigger
 metadata:
   creationTimestamp: null
-  name: kynaptik-http
+  name: webhook
   namespace: default
 spec:
   contentType: application/json
-  errorTopic: error
+  errorTopic: ""
   functionref:
     functionweights: null
-    name: kynaptik-http
+    name: webhook
     type: name
   maxRetries: 0
   messageQueueType: kafka

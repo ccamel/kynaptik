@@ -1,0 +1,25 @@
+include:
+- ./dist/kynaptik-graphql.zip
+kind: ArchiveUploadSpec
+name: dist-kynaptik-graphql-zip-C6A5
+
+---
+apiVersion: fission.io/v1
+kind: Package
+metadata:
+  creationTimestamp: null
+  name: kynaptik-graphql-dev
+  namespace: default
+spec:
+  deployment:
+    checksum: {}
+  environment:
+    name: go
+    namespace: default
+  source:
+    checksum: {}
+    type: url
+    url: archive://dist-kynaptik-graphql-zip-C6A5
+status:
+  buildstatus: pending
+  lastUpdateTimestamp: "2020-04-01T19:09:22Z"
