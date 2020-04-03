@@ -3,6 +3,8 @@ kind: ConfigMap
 metadata:
   namespace: default
   name: webhook
+  annotations:
+    applyTo: kynaptik-http
 data:
   function-spec.yml: |
     preCondition: |
