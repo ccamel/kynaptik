@@ -36,6 +36,8 @@ The following diagram depicts how the main components interact:
     at running time against an environment containing the incoming message.
 -   Extensible configuration of actions with templating: URL, HTTP method, headers and body.
 
+⚠️ At this moment, [Fission][fission] `mqtrigger` processes incoming messages concurrently, which can cause unordered function calls. See [FISSION#1569](https://github.com/fission/fission/issues/1569). Thus, depending on the use cases, it can lead to data inconsistency.
+
 **Out of scope:**
 
 -   No complex conditions, e.g. based on a state based on time ([CEP](https://en.wikipedia.org/wiki/Complex_event_processing))
