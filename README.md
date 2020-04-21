@@ -25,7 +25,9 @@ More broadly, it provides a platform with a versatile and generic Web Hook servi
 
 The following diagram depicts how the main components interact:
 
-![overview](doc/kynaptik-overview.png)
+<p align="center">
+  <img alt="overview" src="doc/kynaptik-overview.png">
+</p>
 
 ## Features
 
