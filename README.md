@@ -13,13 +13,13 @@
 
 > Serverless Function on [Kubernetes][kubernetes] (through [Fission][fission]) providing a generic and configurable mean to trigger _actions_ from incoming _events_.
 
-## Purpose
+## 👉 Purpose
 
 `Kynaptiꓘ` is a function which specifies how a stimulus (i.e. incoming request, message) elicits a response (i.e. invocation of endpoint).
 
 More broadly, it provides a platform with a versatile and generic Web Hook serving multiple purposes.
 
-## Principles
+## 💡Principles
 
 `Kynaptiꓘ` is a function that deploys on [Fission][fission] [FaaS](https://en.wikipedia.org/wiki/Function_as_a_service), an amazing framework for serverless functions on [Kubernetes][kubernetes].
 
@@ -29,7 +29,7 @@ The following diagram depicts how the main components interact:
   <img alt="overview" src="doc/kynaptik-overview.png">
 </p>
 
-## Features
+## ✨ Features
 
 `Kynaptiꓘ` is a simple, lean function with a deliberately limited set of features. Development is driven by the [KISS](https://en.wikipedia.org/wiki/KISS_principle) principle:
 "do one thing well".
@@ -38,7 +38,7 @@ The following diagram depicts how the main components interact:
     at running time against an environment containing the incoming message.
 -   Extensible configuration of actions with templating: URL, HTTP method, headers and body.
 
-⚠️ At this moment, [Fission][fission] `mqtrigger` processes incoming messages concurrently, which can cause unordered function calls. See [FISSION#1569](https://github.com/fission/fission/issues/1569). Thus, depending on the use cases, it can lead to data inconsistency.
+🚨 At this moment, [Fission][fission] `mqtrigger` processes incoming messages concurrently, which can cause unordered function calls. See [FISSION#1569](https://github.com/fission/fission/issues/1569). Thus, depending on the use cases, it can lead to data inconsistency.
 
 **Out of scope:**
 
@@ -50,7 +50,16 @@ The incoming messages are expected to be qualified enough for the processing.
 -   Fire and forget behavior: the action (e.g. HTTP post) is done once, the result is not used (a log is emitted though)
 -   No recovery policy: no retry if the action fails
 
-## Configuration
+## 🚀 Actions
+
+Here's the currently supported actions:
+
+| Action        | Description                                                                       | Documentation                                 |
+| ------------- | --------------------------------------------------------------------------------- | --------------------------------------------- |
+| **`http`**    | Provides HTTP actions for calling external HTTP(S) resources.                     | [view documentation](./doc/action-http.md)    |
+| **`graphql`** | Provides [GraphQL][graphql] actions for calling external [GraphQL][graphql] APIs. | [view documentation](./doc/action-graphql.md) |
+
+## 🛠 Configuration
 
 ### configmap
 
@@ -151,7 +160,7 @@ Variable expansion is also available as template action, as shown below:
 {{ "Hello $FOO" | expandenv }}
 ```
 
-## Evaluation context
+## 📄 Evaluation context
 
 The _preCondition_, _postCondition_ expressions and the _action_ template are processed against a context.
 
@@ -167,15 +176,6 @@ The data tag available in the context is following:
 Some useful functions are also injected in the context covering a large set of operations: string, date, maths, encoding, environment...
 The functions are mainly brought by the [Masterminds/sprig](https://github.com/Masterminds/sprig) project. The complete description of those 
 functions can be found [here](http://masterminds.github.io/sprig/).
-
-## Actions
-
-Here's the currently supported actions:
-
-| Action        | Description                                                                       | Documentation                                 |
-| ------------- | --------------------------------------------------------------------------------- | --------------------------------------------- |
-| **`http`**    | Provides HTTP actions for calling external HTTP(S) resources.                     | [view documentation](./doc/action-http.md)    |
-| **`graphql`** | Provides [GraphQL][graphql] actions for calling external [GraphQL][graphql] APIs. | [view documentation](./doc/action-graphql.md) |
 
 [kubernetes]: https://kubernetes.io/
 
