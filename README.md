@@ -50,6 +50,15 @@ The incoming messages are expected to be qualified enough for the processing.
 -   Fire and forget behavior: the action (e.g. HTTP post) is done once, the result is not used (a log is emitted though)
 -   No recovery policy: no retry if the action fails
 
+## Actions
+
+Here's the currently supported actions:
+
+| Action        | Description                                                                       | Documentation                                 |
+| ------------- | --------------------------------------------------------------------------------- | --------------------------------------------- |
+| **`http`**    | Provides HTTP actions for calling external HTTP(S) resources.                     | [view documentation](./doc/action-http.md)    |
+| **`graphql`** | Provides [GraphQL][graphql] actions for calling external [GraphQL][graphql] APIs. | [view documentation](./doc/action-graphql.md) |
+
 ## Configuration
 
 ### configmap
@@ -167,15 +176,6 @@ The data tag available in the context is following:
 Some useful functions are also injected in the context covering a large set of operations: string, date, maths, encoding, environment...
 The functions are mainly brought by the [Masterminds/sprig](https://github.com/Masterminds/sprig) project. The complete description of those 
 functions can be found [here](http://masterminds.github.io/sprig/).
-
-## Actions
-
-Here's the currently supported actions:
-
-| Action        | Description                                                                       | Documentation                                 |
-| ------------- | --------------------------------------------------------------------------------- | --------------------------------------------- |
-| **`http`**    | Provides HTTP actions for calling external HTTP(S) resources.                     | [view documentation](./doc/action-http.md)    |
-| **`graphql`** | Provides [GraphQL][graphql] actions for calling external [GraphQL][graphql] APIs. | [view documentation](./doc/action-graphql.md) |
 
 [kubernetes]: https://kubernetes.io/
 
