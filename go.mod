@@ -7,7 +7,7 @@ require (
 	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
-	github.com/go-playground/validator/v10 v10.2.0
+	github.com/go-playground/validator/v10 v10.3.0
 	github.com/goccy/go-yaml v1.4.3
 	github.com/justinas/alice v1.2.0
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
