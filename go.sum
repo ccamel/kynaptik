@@ -65,8 +65,8 @@ github.com/mitchellh/reflectwalk v1.0.0 h1:9D+8oIskB4VJBN5SFlmc27fSlIBZaov1Wpk/I
 github.com/mitchellh/reflectwalk v1.0.0/go.mod h1:mSTlrgnPZtwu0c4WaC2kGObEpuNDbx0jmZXqmk4esnw=
 github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27 h1:uAI3rnOT1OSSY4PUtI/M1orb3q0ewkovwd3wr8xSno4=
 github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27/go.mod h1:6eu9CfGt5kfrMVgeu9MfB9PRUnpc47I+udLswiTszI8=
-github.com/motemen/go-nuts v0.0.0-20200521134403-de26cfb00bc6 h1:Ou9JObcSg+JaBt+KAvBqypj/Orc27tHdA4cZ1HUkT4E=
-github.com/motemen/go-nuts v0.0.0-20200521134403-de26cfb00bc6/go.mod h1:1tCxZmJDqO6FrbHD/8LZ8ELaccFziVjn1Y/tNaABMTg=
+github.com/motemen/go-nuts v0.0.0-20200528124917-216e3a4a7a00 h1:cmzIWolMuwJxLo6zXcFDur/22ZCQloMghKd0sxxribQ=
+github.com/motemen/go-nuts v0.0.0-20200528124917-216e3a4a7a00/go.mod h1:1tCxZmJDqO6FrbHD/8LZ8ELaccFziVjn1Y/tNaABMTg=
 github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2 h1:JhzVVoYvbOACxoUmOs6V/G4D5nPVUW73rKvXxP4XUJc=
 github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2/go.mod h1:iIss55rKnNBTvrwdmkUpLnDpZoAHvWaiq5+iMmen4AE=
 github.com/pkg/errors v0.8.1 h1:iURUrRGxPUNPdy5/HRSm+Yj6okJ6UtLINN0Q9M4+h3I=

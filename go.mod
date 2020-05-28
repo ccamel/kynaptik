@@ -11,7 +11,7 @@ require (
 	github.com/goccy/go-yaml v1.4.3
 	github.com/justinas/alice v1.2.0
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
-	github.com/motemen/go-nuts v0.0.0-20200521134403-de26cfb00bc6
+	github.com/motemen/go-nuts v0.0.0-20200528124917-216e3a4a7a00
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/rs/zerolog v1.18.0
 	github.com/smartystreets/goconvey v1.6.4
