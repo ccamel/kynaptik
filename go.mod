@@ -8,7 +8,7 @@ require (
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
 	github.com/go-playground/validator/v10 v10.3.0
-	github.com/goccy/go-yaml v1.5.0
+	github.com/goccy/go-yaml v1.5.1
 	github.com/justinas/alice v1.2.0
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
 	github.com/motemen/go-nuts v0.0.0-20200528124917-216e3a4a7a00
