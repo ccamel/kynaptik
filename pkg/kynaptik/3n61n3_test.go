@@ -304,7 +304,7 @@ action:
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:7] Key: 'Config.Action' Error:Field validation for 'Action' failed on the 'min' tag\n\u003e  5 | null\n            ^\n","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:8] Key: 'Config.Action' Error:Field validation for 'Action' failed on the 'min' tag\n\u003e  5 | null:\n             ^\n","status":"error"}`)
 	}
 
 	return f
