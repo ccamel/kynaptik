@@ -98,7 +98,7 @@ func actionFactory() kynaptik.Action {
 	}
 }
 
-// EntryPoint is the entry point for this Fission function
+// EntryPoint is the entry point for this Fission function.
 func EntryPoint(w http.ResponseWriter, r *http.Request) {
 	kynaptik.Invokeλ(w, r, afero.NewOsFs(), configFactory, actionFactory)
 }
