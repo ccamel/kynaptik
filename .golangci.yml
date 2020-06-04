@@ -34,5 +34,7 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - godox
+    - asciicheck
+    - goerr113
 #    - lll
   fast: false
