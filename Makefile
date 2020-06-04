@@ -52,7 +52,7 @@ build-%:
 pkg-%:
 	@PKG=$(word 2,$(subst -, ,$@)); \
 	NAME=kynaptik-$$PKG.zip; \
-	echo "⚙️ building package archive for kynaptik-$$PKG"; \
+	echo "📦️ building package archive for kynaptik-$$PKG"; \
 	mkdir -p build/$$NAME; \
 	mkdir -p dist; \
 	tar cpf - $(LIB_CORE) go.mod go.sum | tar xpf - -C build/$$NAME; \
@@ -60,18 +60,18 @@ pkg-%:
 	cd build/$$NAME && zip -r ../../dist/$$NAME.zip .
 
 ./bin/golangci-lint:
-	@echo "installing $(notdir $@)"
+	@echo "🔨 installing $(notdir $@)"
 	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.27.0
 
 $(GOPATH)/bin/goconvey:
-	@echo "installing $(notdir $@)"
+	@echo "🔨 installing $(notdir $@)"
 	go get github.com/smartystreets/goconvey
 
 $(GOPATH)/bin/gothanks:
-	@echo "installing $(notdir $@)"
+	@echo "🔨 installing $(notdir $@)"
 	go get -u github.com/psampaz/gothanks
 
 $(GOPATH)/bin/generate-tls-cert:
-	@echo "installing $(notdir $@)"
+	@echo "🔨 installing $(notdir $@)"
 	go get github.com/Shyp/generate-tls-cert
 
