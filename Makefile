@@ -9,7 +9,7 @@ FUNCTIONS=$(sort $(notdir $(abspath $(wildcard functions/*/.))))
 
 default: build
 
-tools: $(GOPATH)/bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
+tools: ./bin/golangci-lint $(GOPATH)/bin/goconvey $(GOPATH)/bin/gothanks $(GOPATH)/bin/generate-tls-cert
 
 deps:
 	go get ./...
@@ -20,7 +20,7 @@ test: build
 	go test -v -covermode=count -coverprofile c.out ./...
 
 lint: tools
-	$(GOPATH)/bin/golangci-lint run
+	./bin/golangci-lint run
 
 goconvey: tools
 	$(GOPATH)/bin/goconvey -cover -excludedDirs build,dist,doc,etc,specs,vendor
@@ -37,6 +37,7 @@ certificates: tools clean-certificates
 clean:
 	rm -rf build
 	rm -rf dist
+	rm -rf bin
 
 clean-certificates:
 	rm -f etc/cert/*
@@ -58,9 +59,9 @@ pkg-%:
 	cp functions/$$PKG/λ.go build/$$NAME/; \
 	cd build/$$NAME && zip -r ../../dist/$$NAME.zip .
 
-$(GOPATH)/bin/golangci-lint:
+./bin/golangci-lint:
 	@echo "installing $(notdir $@)"
-	curl -sfL https://install.goreleaser.com/github.com/golangci/golangci-lint.sh | sh -s -- -b $(GOPATH)/bin v1.24.0
+	curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.27.0
 
 $(GOPATH)/bin/goconvey:
 	@echo "installing $(notdir $@)"
