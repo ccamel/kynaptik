@@ -1,5 +1,5 @@
 .EXPORT_ALL_VARIABLES:
-.PHONY: install-tools install-deps build test lint goconvey dist
+.PHONY: tools deps build test lint goconvey dist
 
 GO111MODULE=on
 
