@@ -250,7 +250,7 @@ action
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:1] unexpected key name\n   2 | \n   3 | preCondition: |\n   4 |  true == true\n\u003e  5 | \n   6 | action\n   7 |  uri: 'null://'\n      ^\n","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:1] unexpected key name\n   2 | preCondition: |\n   3 |  true == true\n   4 | \n\u003e  5 | action\n   6 |  uri: 'null://'\n       ^\n","status":"error"}`)
 	}
 
 	return f
@@ -304,7 +304,7 @@ action:
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:8] Key: 'Config.Action' Error:Field validation for 'Action' failed on the 'min' tag\n\u003e  5 | null:\n             ^\n","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-configuration"},"message":"[5:8] Key: 'Config.Action' Error:Field validation for 'Action' failed on the 'min' tag\n\u003e  5 | null:\n              ^\n","status":"error"}`)
 	}
 
 	return f
@@ -329,7 +329,7 @@ action: |
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"[1:6] Key: 'protoAction.URI' Error:Field validation for 'URI' failed on the 'scheme=https|scheme=http|scheme=null' tag\nKey: 'protoAction.Param1' Error:Field validation for 'Param1' failed on the 'required' tag\n\u003e  1 | uri: 'bad://'\n           ^\n","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"[1:6] Key: 'protoAction.URI' Error:Field validation for 'URI' failed on the 'scheme=https|scheme=http|scheme=null' tag\nKey: 'protoAction.Param1' Error:Field validation for 'Param1' failed on the 'required' tag\n\u003e  1 | uri: 'bad://'\n            ^\n","status":"error"}`)
 	}
 
 	return f
