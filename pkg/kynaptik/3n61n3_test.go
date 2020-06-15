@@ -673,7 +673,7 @@ postCondition: |
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"incorrect type string returned when evaluating expression 'response'. Expected 'boolean'","status":"fail"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"incorrect type string returned when evaluating expression 'response\n'. Expected 'boolean'","status":"fail"}`)
 	}
 
 	return f
@@ -702,7 +702,7 @@ postCondition: |
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ko", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadGateway)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"endpoint 'null://' call didn't satisfy postCondition: response == \"ok\"","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"endpoint 'null://' call didn't satisfy postCondition: response == \"ok\"\n","status":"error"}`)
 	}
 
 	return f
