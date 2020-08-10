@@ -15,7 +15,7 @@ require (
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/rs/zerolog v1.19.0
 	github.com/smartystreets/goconvey v1.6.4
-	github.com/spf13/afero v1.3.3
+	github.com/spf13/afero v1.3.4
 	github.com/tcnksm/go-httpstat v0.2.0
 	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
