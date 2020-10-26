@@ -179,7 +179,7 @@ func TestGraphqlActionFactory(t *testing.T) {
 	Convey("When calling ActionFactory", t, func(c C) {
 		action := ActionFactory()
 
-		Convey(fmt.Sprintf("Then action created is an Action with default values"), func() {
+		Convey("Then action created is an Action with default values", func() {
 
 			So(action, ShouldHaveSameTypeAs, &Action{})
 			So(action.(*Action).URI, ShouldEqual, "")
@@ -188,7 +188,7 @@ func TestGraphqlActionFactory(t *testing.T) {
 			So(action.(*Action).Variables, ShouldResemble, map[string]interface{}{})
 		})
 
-		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
+		Convey("And created action can be marshalled into a log without error", func() {
 			log.
 				Info().
 				Object("action", action).

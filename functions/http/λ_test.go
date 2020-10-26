@@ -288,7 +288,7 @@ func TestHttpActionFactory(t *testing.T) {
 	Convey("When calling HttpActionFactory", t, func(c C) {
 		action := actionFactory()
 
-		Convey(fmt.Sprintf("Then action created is an Action with default values"), func() {
+		Convey("Then action created is an Action with default values", func() {
 
 			So(action, ShouldHaveSameTypeAs, &Action{})
 			So(action.(*Action).URI, ShouldEqual, "")
@@ -299,7 +299,7 @@ func TestHttpActionFactory(t *testing.T) {
 			So(action.(*Action).Options.Transport.FollowRedirect, ShouldEqual, true)
 		})
 
-		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
+		Convey("And created action can be marshalled into a log without error", func() {
 			log.
 				Info().
 				Object("action", action).
