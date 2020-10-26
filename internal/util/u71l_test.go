@@ -95,7 +95,7 @@ func TestRenderTemplatedString(t *testing.T) {
 			Convey(fmt.Sprintf("When calling function with template %s (case %d)", c.name, n), func() {
 				reader, err := RenderTemplatedString(c.name, c.template, c.ctx)
 
-				Convey(fmt.Sprintf("Then no error shall occur"), func() {
+				Convey("Then no error shall occur", func() {
 					So(err, ShouldBeNil)
 
 					Convey(fmt.Sprintf("And result shall conform to `%s`", c.expected), func() {
@@ -178,7 +178,7 @@ func TestEvaluatePredicateExpression(t *testing.T) {
 				program, err := expr.Compile(c.predicate)
 				So(err, ShouldBeNil)
 
-				Convey(fmt.Sprintf("When calling function"), func() {
+				Convey("When calling function", func() {
 					result, err := EvaluatePredicateExpression(program, c.ctx)
 
 					Convey(fmt.Sprintf("Then result should be %v", result), func() {

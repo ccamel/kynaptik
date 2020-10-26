@@ -171,7 +171,7 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					count++
 					if count < 5 {
-						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), 301)
+						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), http.StatusMovedPermanently)
 					} else {
 						_, _ = io.WriteString(w, "ok")
 					}
@@ -217,7 +217,7 @@ func httpFailedGetWithRedirectInvocationFixtureProvider(options Options, errMess
 				go func() {
 					count := 0
 					err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), 301)
+						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), http.StatusMovedPermanently)
 					}))
 					if err != nil {
 						c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
@@ -288,7 +288,7 @@ func TestHttpActionFactory(t *testing.T) {
 	Convey("When calling HttpActionFactory", t, func(c C) {
 		action := actionFactory()
 
-		Convey(fmt.Sprintf("Then action created is an Action with default values"), func() {
+		Convey("Then action created is an Action with default values", func() {
 
 			So(action, ShouldHaveSameTypeAs, &Action{})
 			So(action.(*Action).URI, ShouldEqual, "")
@@ -299,7 +299,7 @@ func TestHttpActionFactory(t *testing.T) {
 			So(action.(*Action).Options.Transport.FollowRedirect, ShouldEqual, true)
 		})
 
-		Convey(fmt.Sprintf("And created action can be marshalled into a log without error"), func() {
+		Convey("And created action can be marshalled into a log without error", func() {
 			log.
 				Info().
 				Object("action", action).
