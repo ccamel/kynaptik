@@ -171,7 +171,7 @@ func httpSuccessfulGetWithRedirectInvocationFixture() httpFixture {
 				err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 					count++
 					if count < 5 {
-						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), 301)
+						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), http.StatusMovedPermanently)
 					} else {
 						_, _ = io.WriteString(w, "ok")
 					}
@@ -217,7 +217,7 @@ func httpFailedGetWithRedirectInvocationFixtureProvider(options Options, errMess
 				go func() {
 					count := 0
 					err := http.Serve(listener, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), 301)
+						http.Redirect(w, r, fmt.Sprintf("http://localhost:%d/?q=%d", port, count), http.StatusMovedPermanently)
 					}))
 					if err != nil {
 						c.So(err.Error(), ShouldContainSubstring, "use of closed network connection")
