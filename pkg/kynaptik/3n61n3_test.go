@@ -280,7 +280,7 @@ b
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-secret"},"message":"String node doesn't MapNode","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"load-secret"},"message":"String node found where MapNode is expected","status":"error"}`)
 	}
 
 	return f
@@ -354,7 +354,7 @@ action: |
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"String node doesn't MapNode","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"build-action"},"message":"String node found where MapNode is expected","status":"error"}`)
 	}
 
 	return f
