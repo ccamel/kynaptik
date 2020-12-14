@@ -3,7 +3,7 @@ module github.com/ccamel/kynaptik
 go 1.13
 
 require (
-	github.com/Masterminds/sprig/v3 v3.1.0
+	github.com/Masterminds/sprig/v3 v3.2.0
 	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
@@ -17,5 +17,4 @@ require (
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/afero v1.5.1
 	github.com/tcnksm/go-httpstat v0.2.0
-	gopkg.in/yaml.v2 v2.2.7 // indirect
 )
