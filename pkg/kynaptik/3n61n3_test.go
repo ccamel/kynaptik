@@ -513,7 +513,7 @@ action: |
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-pre-condition"},"message":"syntax error: mismatched input '!=' expecting {'len', 'all', 'none', 'any', 'one', 'filter', 'map', '[', '(', '{', '.', '+', '-', '!', 'not', 'nil', '#', BooleanLiteral, IntegerLiteral, FloatLiteral, HexIntegerLiteral, Identifier, StringLiteral} (1:1)\n | !=\n | ^","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-pre-condition"},"message":"unexpected token Operator(\"!=\") (1:1)\n | !=\n | ^","status":"error"}`)
 	}
 
 	return f
@@ -538,7 +538,7 @@ action: |
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:5)\n | a + 5 == 6\n | ....^","status":"fail"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-pre-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:3)\n | a + 5 == 6\n | ..^","status":"fail"}`)
 	}
 
 	return f
@@ -615,7 +615,7 @@ postCondition: |
 	f.act = actDefault
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusServiceUnavailable)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-post-condition"},"message":"syntax error: mismatched input '!=' expecting {'len', 'all', 'none', 'any', 'one', 'filter', 'map', '[', '(', '{', '.', '+', '-', '!', 'not', 'nil', '#', BooleanLiteral, IntegerLiteral, FloatLiteral, HexIntegerLiteral, Identifier, StringLiteral} (1:1)\n | !=\n | ^","status":"error"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"parse-post-condition"},"message":"unexpected token Operator(\"!=\") (1:1)\n | !=\n | ^","status":"error"}`)
 	}
 
 	return f
@@ -644,7 +644,7 @@ postCondition: |
 	f.actionBehaviour = func(action protoAction, ctx context.Context) (i interface{}, e error) { return "ok", nil }
 	f.assert = func(rr *httptest.ResponseRecorder) {
 		So(rr.Code, ShouldEqual, http.StatusBadRequest)
-		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:5)\n | a + 5 == 6\n | ....^","status":"fail"}`)
+		So(rr.Body.String(), ShouldEqual, `{"data":{"stage":"match-post-condition"},"message":"invalid operation: \u003cnil\u003e + int (1:3)\n | a + 5 == 6\n | ..^","status":"fail"}`)
 	}
 
 	return f

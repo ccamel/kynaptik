@@ -4,7 +4,7 @@ go 1.13
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.0
-	github.com/antonmedv/expr v0.0.0-20190722074941-0223e4dcfd8b
+	github.com/antonmedv/expr v1.8.9
 	github.com/flimzy/donewriter v0.0.0-20170510162603-1516ff172a4d
 	github.com/gamegos/jsend v0.0.0-20151011171802-f47e169f3d76
 	github.com/go-playground/validator/v10 v10.4.1
