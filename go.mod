@@ -13,7 +13,7 @@ require (
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
 	github.com/motemen/go-nuts v0.0.0-20210519135428-0d423d0aeb70
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
-	github.com/rs/zerolog v1.22.0
+	github.com/rs/zerolog v1.23.0
 	github.com/smartystreets/goconvey v1.6.4
 	github.com/spf13/afero v1.6.0
 	github.com/tcnksm/go-httpstat v0.2.0
