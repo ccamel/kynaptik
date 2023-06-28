@@ -14,7 +14,7 @@ require (
 	github.com/motemen/go-nuts v0.0.0-20210915132349-615a782f2c69
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
 	github.com/rs/zerolog v1.26.1
-	github.com/smartystreets/goconvey v1.7.2
+	github.com/smartystreets/goconvey v1.8.1
 	github.com/spf13/afero v1.8.1
 	github.com/tcnksm/go-httpstat v0.2.0
 )
