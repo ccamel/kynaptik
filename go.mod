@@ -1,6 +1,6 @@
 module github.com/ccamel/kynaptik
 
-go 1.13
+go 1.23
 
 require (
 	github.com/Masterminds/sprig/v3 v3.2.2
@@ -13,8 +13,34 @@ require (
 	github.com/motemen/go-loghttp v0.0.0-20170804080138-974ac5ceac27
 	github.com/motemen/go-nuts v0.0.0-20210915132349-615a782f2c69
 	github.com/phayes/freeport v0.0.0-20180830031419-95f893ade6f2
-	github.com/rs/zerolog v1.26.1
+	github.com/rs/zerolog v1.35.1
 	github.com/smartystreets/goconvey v1.7.2
 	github.com/spf13/afero v1.8.1
 	github.com/tcnksm/go-httpstat v0.2.0
+)
+
+require (
+	github.com/Masterminds/goutils v1.1.1 // indirect
+	github.com/Masterminds/semver/v3 v3.1.1 // indirect
+	github.com/fatih/color v1.10.0 // indirect
+	github.com/go-playground/locales v0.13.0 // indirect
+	github.com/go-playground/universal-translator v0.17.0 // indirect
+	github.com/google/uuid v1.1.2 // indirect
+	github.com/gopherjs/gopherjs v0.0.0-20181017120253-0766667cb4d1 // indirect
+	github.com/huandu/xstrings v1.3.1 // indirect
+	github.com/imdario/mergo v0.3.11 // indirect
+	github.com/jtolds/gls v4.20.0+incompatible // indirect
+	github.com/leodido/go-urn v1.2.0 // indirect
+	github.com/mattn/go-colorable v0.1.14 // indirect
+	github.com/mattn/go-isatty v0.0.20 // indirect
+	github.com/mitchellh/copystructure v1.0.0 // indirect
+	github.com/mitchellh/reflectwalk v1.0.0 // indirect
+	github.com/rs/xid v1.6.0 // indirect
+	github.com/shopspring/decimal v1.2.0 // indirect
+	github.com/smartystreets/assertions v1.2.0 // indirect
+	github.com/spf13/cast v1.3.1 // indirect
+	golang.org/x/crypto v0.0.0-20211108221036-ceb1ce70b4fa // indirect
+	golang.org/x/sys v0.29.0 // indirect
+	golang.org/x/text v0.3.6 // indirect
+	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
 )
